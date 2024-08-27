@@ -1,8 +1,10 @@
 import type { Options } from "vis-network";
 import type { Instance as TippyInstance } from "tippy.js";
 
-import { Network, DataSet } from "vis-network";
+import { DataSet } from "vis-data/peer";
+import { Network } from "vis-network/peer";
 import tippy from "tippy.js";
+import "tippy.js/themes/material.css"
 
 export class MwPojmovaMapa {
     private tippyInstancia: TippyInstance;
@@ -31,6 +33,22 @@ export class MwPojmovaMapa {
     }
 
     public async inicializovat(): Promise<void> {
+        this.tippyInstancia.setProps({
+            triggerTarget: this.elementMapy,
+            maxWidth: "90vw",
+            allowHTML: true,
+            arrow: false,
+            theme: "material",
+            interactive: false,
+            getReferenceClientRect: () => {
+                return new DOMRect(
+                    window.innerWidth / 2,
+                    window.innerHeight - 10,
+                    0, 0
+                )
+            }
+        });
+
         await this.vytvoritDataMapy();
         await this.vykreslitMapu();
     }
@@ -151,15 +169,6 @@ export class MwPojmovaMapa {
         this.pojmova_mapa.on("hoverNode", (parametre) => {
             const obsah = this.mapa.vrcholy.find((vrchol) => vrchol.id === parametre.node)?.tooltip;
             if (!parametre.node || !obsah) return;
-
-            this.tippyInstancia.setProps({
-                triggerTarget: this.elementMapy,
-                maxWidth: "90vw",
-                allowHTML: true,
-                arrow: false,
-                interactive: true,
-                getReferenceClientRect: () => this.elementMapy.getBoundingClientRect(),
-            });
 
             this.tippyInstancia.setContent(`<div style="padding: 1rem; font-size: 12px !important; color: lightgray;">${obsah}</div>`);
             this.tippyInstancia.show();

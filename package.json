@@ -1,10 +1,10 @@
 {
   "name": "mw_pojmova_mapa",
-  "module": "index.ts",
+  "module": "pojmova_mapa.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build index.ts --minify --outfile=dist/pojmova_mapa.js"
+    "build": "bun build pojmova_mapa.ts --minify --outdir=dist --target=browser --asset-naming=\"[name].[ext]\""
   },
   "devDependencies": {
     "@types/bun": "latest"

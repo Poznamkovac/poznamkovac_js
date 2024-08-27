@@ -4,7 +4,6 @@ import type { Instance as TippyInstance } from "tippy.js";
 import { DataSet } from "vis-data/peer";
 import { Network } from "vis-network/peer";
 import tippy from "tippy.js";
-import "tippy.js/themes/material.css"
 
 export class MwPojmovaMapa {
     private tippyInstancia: TippyInstance;
@@ -38,7 +37,6 @@ export class MwPojmovaMapa {
             maxWidth: "90vw",
             allowHTML: true,
             arrow: false,
-            theme: "material",
             interactive: false,
             getReferenceClientRect: () => {
                 return new DOMRect(
@@ -170,7 +168,7 @@ export class MwPojmovaMapa {
             const obsah = this.mapa.vrcholy.find((vrchol) => vrchol.id === parametre.node)?.tooltip;
             if (!parametre.node || !obsah) return;
 
-            this.tippyInstancia.setContent(`<div style="padding: 1rem; font-size: 12px !important; color: lightgray;">${obsah}</div>`);
+            this.tippyInstancia.setContent(`<div style="width: 100%; padding: 1rem; font-size: 12px; color: lightgray; background: black;">${obsah}</div>`);
             this.tippyInstancia.show();
         });
 

@@ -66,7 +66,6 @@ export class MwPojmovaMapa {
 
             this.mapa.vrcholy.push({
                 id: idVrchola,
-                title: this.obsahNadpisu(nadpis),
                 label: nazov,
                 color: color,
             });
@@ -91,6 +90,7 @@ export class MwPojmovaMapa {
             clickToUse: true,
             interaction: {
                 hover: true,
+                tooltipDelay: 0,
                 dragNodes: false,
                 dragView: false,
                 zoomView: false,
@@ -158,39 +158,6 @@ export class MwPojmovaMapa {
         info.innerHTML += "Kliknutím na vrchol sa presuniete na príslušnú sekciu.";
 
         this.elementMapy.parentNode?.insertBefore(info, this.elementMapy.nextSibling);
-    }
-
-    private obsahNadpisu(nadpisElement: HTMLHeadingElement): HTMLDivElement {
-        let novyNadpis = nadpisElement.cloneNode(true) as HTMLElement;
-        novyNadpis.innerHTML = (novyNadpis.querySelector(".mw-headline") as HTMLHeadingElement).outerHTML;
-        novyNadpis.getElementsByTagName("span")?.[0]?.removeAttribute("id"); // odstráni duplicitné ID
-
-        novyNadpis.style.marginTop = "0";
-        novyNadpis.style.textAlign = "center";
-
-        let obsahDiv = document.createElement("div");
-        obsahDiv.appendChild(novyNadpis);
-
-        const __pridavajObsah = (element: Element | null): void => {
-            if (element === null || ["H1", "H2", "H3", "H4", "H5", "H6"].includes(element.tagName)) {
-                return;
-            }
-
-            if (element.querySelector(":scope > h1, h2, h3, h4, h5, h6")) {
-                __pridavajObsah(element.firstElementChild);
-            } else {
-                obsahDiv.appendChild(element.cloneNode(true));
-                __pridavajObsah(element.nextElementSibling);
-            }
-        };
-
-        __pridavajObsah(nadpisElement.nextElementSibling);
-        obsahDiv = this.skratitDiv(obsahDiv);
-
-        obsahDiv.style.fontSize = "12px";
-        obsahDiv.style.maxWidth = "50vw";
-        obsahDiv.style.maxHeight = "50vh";
-        return obsahDiv;
     }
 
     private skratitDiv(element: HTMLDivElement, maxDlzka: number = 2000): HTMLDivElement {

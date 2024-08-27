@@ -1,0 +1,21 @@
+{
+  "name": "mw_pojmova_mapa",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "bun build index.ts --minify --outdir=dist --outfile=pojmova_mapa.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "version": "1.0.0",
+  "description": "Pojmová mapa pre https://poznamkovac.eu",
+  "dependencies": {
+    "tippy.js": "^6.3.7",
+    "vis-network": "^9.1.9"
+  }
+}

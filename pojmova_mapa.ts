@@ -1,15 +1,11 @@
-import type { Options } from "vis-network";
-import type { Instance as TippyInstance } from "tippy.js";
-
+import type { Edge, Node, Options } from "vis-network";
 import { DataSet } from "vis-data/peer";
 import { Network } from "vis-network/peer";
-import tippy from "tippy.js";
 
 export class MwPojmovaMapa {
-    private tippyInstancia: TippyInstance;
     private poznamkyElement: HTMLElement;
     private elementMapy: HTMLElement;
-    private mapa: { vrcholy: any[]; hrany: any[] };
+    private mapa: { vrcholy: Node[]; hrany: Edge[] };
     private pojmova_mapa: Network | null = null;
 
     private static readonly farbySkupin = [
@@ -25,33 +21,17 @@ export class MwPojmovaMapa {
     ];
 
     constructor(poznamkyElement: HTMLElement, elementMapy: HTMLDivElement) {
-        this.tippyInstancia = tippy(document.createElement("div"));
         this.poznamkyElement = poznamkyElement;
         this.elementMapy = elementMapy;
         this.mapa = { vrcholy: [], hrany: [] };
     }
 
-    public async inicializovat(): Promise<void> {
-        this.tippyInstancia.setProps({
-            triggerTarget: this.elementMapy,
-            maxWidth: "90vw",
-            allowHTML: true,
-            arrow: false,
-            interactive: false,
-            getReferenceClientRect: () => {
-                return new DOMRect(
-                    window.innerWidth / 2,
-                    window.innerHeight - 10,
-                    0, 0
-                )
-            }
-        });
-
-        await this.vytvoritDataMapy();
-        await this.vykreslitMapu();
+    public inicializovat(): void {
+        this.vytvoritDataMapy();
+        this.vykreslitMapu();
     }
 
-    private async vytvoritDataMapy(): Promise<void> {
+    private vytvoritDataMapy(): void {
         const nadpisy = this.poznamkyElement.querySelectorAll("h1, h2, h3, h4, h5, h6") as NodeListOf<HTMLHeadingElement>;
         let posledneNadpisy: number[] = [];
         let indexSkupiny = 0;
@@ -62,7 +42,6 @@ export class MwPojmovaMapa {
             id: 1,
             label: korenovyNadpis,
             color: this.generovatFarbu(indexSkupiny),
-            tooltip: "",
         });
         farbySkupin[0] = indexSkupiny;
 
@@ -87,9 +66,9 @@ export class MwPojmovaMapa {
 
             this.mapa.vrcholy.push({
                 id: idVrchola,
+                title: this.obsahNadpisu(nadpis),
                 label: nazov,
                 color: color,
-                tooltip: this.obsahNadpisu(nadpis),
             });
             this.mapa.hrany.push({ from: idRodica, to: idVrchola });
 
@@ -98,7 +77,7 @@ export class MwPojmovaMapa {
         });
     }
 
-    private async vykreslitMapu(): Promise<void> {
+    private vykreslitMapu(): void {
         const sirkaZobrazenia = window.innerWidth;
         const jeSirokeZobrazenie = sirkaZobrazenia > 768;
 
@@ -113,7 +92,7 @@ export class MwPojmovaMapa {
             interaction: {
                 hover: true,
                 dragNodes: false,
-                dragView: true,
+                dragView: false,
                 zoomView: false,
             },
             nodes: {
@@ -127,7 +106,7 @@ export class MwPojmovaMapa {
                     bottom: 10,
                     left: 10,
                 },
-                labelHighlightBold: false,
+                labelHighlightBold: true,
             },
             edges: {
                 width: 1.0,
@@ -142,8 +121,8 @@ export class MwPojmovaMapa {
                     enabled: true,
                     direction: jeSirokeZobrazenie ? "UD" : "LR",
                     sortMethod: "directed",
-                    nodeSpacing: jeSirokeZobrazenie ? 220 : 100,
-                    levelSeparation: jeSirokeZobrazenie ? 100 : 250,
+                    nodeSpacing: jeSirokeZobrazenie ? 200 : 40,
+                    levelSeparation: jeSirokeZobrazenie ? 80 : 140,
                     shakeTowards: "roots",
                 },
             },
@@ -158,69 +137,34 @@ export class MwPojmovaMapa {
         this.pojmova_mapa = new Network(this.elementMapy, dataSiete, nastavenia);
 
         this.nastavitUdalosti();
-        this.pridatInfoText(jeSirokeZobrazenie);
+        this.pridatInfoText();
     }
 
     private nastavitUdalosti(): void {
         if (!this.pojmova_mapa) return;
 
-        this.pojmova_mapa.on("hoverNode", (parametre) => {
-            const obsah = this.mapa.vrcholy.find((vrchol) => vrchol.id === parametre.node)?.tooltip;
-            if (!parametre.node || !obsah) return;
-
-            this.tippyInstancia.setContent(`<div style="width: 100%; padding: 1rem; font-size: 12px; color: lightgray; background: black;">${obsah}</div>`);
-            this.tippyInstancia.show();
-        });
-
-        let poslednaKliknutaBunkaId: number;
-        let casPoslednehoKliknutiaNaBunku: number;
-
         this.pojmova_mapa.on("click", (parametre) => {
-            if (!parametre.nodes.length) return;
-            let bunkaId = parametre.nodes[0];
+            const titulokBunky = this.mapa.vrcholy.find((vrchol) => vrchol.id === parametre?.nodes?.[0])?.label;
+            if (!titulokBunky) return;
 
-            const _navigovat = () => {
-                const titulokBunky = this.mapa.vrcholy.find((vrchol) => vrchol.id === bunkaId)?.label;
-                if (!titulokBunky) return;
-
-                window.location.hash = "";
-                window.location.hash = `#${titulokBunky.replaceAll(" ", "_")}`;
-                this.tippyInstancia.hide();
-            };
-
-            if (window.innerWidth <= 768) {
-                const aktualnyCas = new Date().getTime();
-
-                if (poslednaKliknutaBunkaId === bunkaId && aktualnyCas - casPoslednehoKliknutiaNaBunku < 500) {
-                    setTimeout(() => {
-                        _navigovat();
-                    }, 50);
-                }
-
-                poslednaKliknutaBunkaId = bunkaId;
-                casPoslednehoKliknutiaNaBunku = aktualnyCas;
-            } else {
-                _navigovat();
-            }
-        });
-
-        this.pojmova_mapa.on("blurNode", () => {
-            this.tippyInstancia.hide();
+            window.location.hash = "";
+            window.location.hash = `#${titulokBunky.replaceAll(" ", "_")}`;
         });
     }
 
-    private pridatInfoText(jeSirokeZobrazenie: boolean): void {
+    private pridatInfoText(): void {
         let info = document.createElement("small");
         info.style.fontSize = "12px";
-        info.innerHTML += "Kliknite na mapu pre interakciu s ňou. ";
-        info.innerHTML += `${jeSirokeZobrazenie ? "Kliknutím" : "Dvojitým kliknutím"} na vrchol sa presuniete na príslušnú sekciu.\n`;
+        info.innerHTML += "Kliknutím na vrchol sa presuniete na príslušnú sekciu.";
 
         this.elementMapy.parentNode?.insertBefore(info, this.elementMapy.nextSibling);
     }
 
-    private obsahNadpisu(nadpisElement: HTMLHeadingElement): string {
+    private obsahNadpisu(nadpisElement: HTMLHeadingElement): HTMLDivElement {
         let novyNadpis = nadpisElement.cloneNode(true) as HTMLElement;
         novyNadpis.innerHTML = (novyNadpis.querySelector(".mw-headline") as HTMLHeadingElement).outerHTML;
+        novyNadpis.getElementsByTagName("span")?.[0]?.removeAttribute("id"); // odstráni duplicitné ID
+
         novyNadpis.style.marginTop = "0";
         novyNadpis.style.textAlign = "center";
 
@@ -243,7 +187,10 @@ export class MwPojmovaMapa {
         __pridavajObsah(nadpisElement.nextElementSibling);
         obsahDiv = this.skratitDiv(obsahDiv);
 
-        return obsahDiv.innerHTML;
+        obsahDiv.style.fontSize = "12px";
+        obsahDiv.style.maxWidth = "50vw";
+        obsahDiv.style.maxHeight = "50vh";
+        return obsahDiv;
     }
 
     private skratitDiv(element: HTMLDivElement, maxDlzka: number = 2000): HTMLDivElement {

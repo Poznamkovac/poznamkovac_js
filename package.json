@@ -4,10 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build pojmova_mapa.ts --minify --outdir=dist --target=browser --asset-naming=\"[name].[ext]\""
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
+    "build": "bun build pojmova_mapa.ts --minify --outdir=dist --target=browser"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -15,7 +12,6 @@
   "version": "1.0.0",
   "description": "Pojmová mapa pre https://poznamkovac.eu",
   "dependencies": {
-    "tippy.js": "^6.3.7",
-    "vis-network": "^9.1.9"
+    "vis-network": "^9"
   }
 }

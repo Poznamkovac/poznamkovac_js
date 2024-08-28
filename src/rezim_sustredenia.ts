@@ -22,7 +22,7 @@ export class MwZenRezim {
 
     private vytvoritIkonu(): HTMLImageElement {
         const ikona = document.createElement("img");
-        ikona.src = EYE_CLOSED;
+        ikona.src = EYE_OPEN;
         ikona.alt = "👁️";
         return ikona;
     }
@@ -56,7 +56,7 @@ export class MwZenRezim {
 
     private prepnutZen(): void {
         this.zen = !this.zen;
-        this.ikona.src = this.zen ? EYE_OPEN : EYE_CLOSED;
+        this.ikona.src = this.zen ? EYE_CLOSED : EYE_OPEN;
         document.body.classList.toggle('zen-mode', this.zen);
 
         if (this.zen) {
@@ -91,58 +91,60 @@ export class MwZenRezim {
         return false;
     }
 
-    private najdiElement(startElement: Element, smer: 'next' | 'previous'): HTMLElement | null {
-        const najdiRekurzivne = (element: Element | null, hladajHore: boolean = false): HTMLElement | null => {
-            if (!element || !this.obsahStranky.contains(element)) {
-                return null;
-            }
-    
+    private najdiNajblizsiElement(): void {
+        const viewportMiddle = window.innerHeight / 2;
+        let closestElement: HTMLElement | null = null;
+        let minDistance = Infinity;
+
+        const rekurzivneHladanie = (element: Element): void => {
             if (this.jePlatnyElement(element)) {
-                return element as HTMLElement;
-            }
-    
-            const prehladajDeti = (elem: Element): HTMLElement | null => {
-                const dieta = smer === 'next' ? elem.firstElementChild : elem.lastElementChild;
-                return najdiRekurzivne(dieta);
-            };
-    
-            const prehladajSurodencov = (elem: Element): HTMLElement | null => {
-                const surodenca = smer === 'next' ? elem.nextElementSibling : elem.previousElementSibling;
-                return najdiRekurzivne(surodenca);
-            };
-    
-            if (!hladajHore && element.hasChildNodes()) {
-                const vysledokDeti = prehladajDeti(element);
-                if (vysledokDeti) return vysledokDeti;
-            }
-    
-            const vysledokSurodencov = prehladajSurodencov(element);
-            if (vysledokSurodencov) return vysledokSurodencov;
-    
-            const rodic = element.parentElement;
-            if (rodic && this.obsahStranky.contains(rodic)) {
-                if (hladajHore) {
-                    return najdiRekurzivne(rodic, true);
-                } else {
-                    return najdiRekurzivne(rodic, true);
+                const rect = element.getBoundingClientRect();
+                const elementMiddle = rect.top + rect.height / 2;
+                const distance = Math.abs(elementMiddle - viewportMiddle);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestElement = element as HTMLElement;
                 }
             }
-    
+
+            for (const child of Array.from(element.children)) {
+                rekurzivneHladanie(child);
+            }
+        };
+
+        rekurzivneHladanie(this.obsahStranky);
+
+        if (closestElement && closestElement !== this.aktualnyElement) {
+            this.zvyraznitElement(closestElement);
+        }
+    }
+
+    private najdiElement(startElement: Element, smer: 'next' | 'previous'): HTMLElement | null {
+        const krok = (element: Element | null): Element | null => {
+            if (!element) return null;
+            return smer === 'next' ? element.nextElementSibling : element.previousElementSibling;
+        };
+
+        const hladajHlboko = (element: Element | null): HTMLElement | null => {
+            while (element) {
+                if (this.jePlatnyElement(element)) {
+                    return element as HTMLElement;
+                }
+                const result = hladajHlboko(smer === 'next' ? element.firstElementChild : element.lastElementChild);
+                if (result) return result;
+                element = krok(element);
+            }
             return null;
         };
-    
-        if (!this.obsahStranky.contains(startElement)) {
-            return null;
+
+        let current: Element | null = startElement;
+        while (current && this.obsahStranky.contains(current)) {
+            const result = hladajHlboko(krok(current));
+            if (result) return result;
+            current = current.parentElement;
         }
-    
-        const prvy = smer === 'next' ? startElement.nextElementSibling : startElement.previousElementSibling;
-        const vysledok = najdiRekurzivne(prvy);
-    
-        if (!vysledok && this.obsahStranky.contains(startElement.parentElement)) {
-            return najdiRekurzivne(startElement.parentElement, true);
-        }
-    
-        return vysledok;
+
+        return null;
     }
 
     private zvyraznitElement(element: HTMLElement): void {
@@ -153,30 +155,6 @@ export class MwZenRezim {
         const rect = element.getBoundingClientRect();
         const scrollTarget = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2;
         window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
-    }
-
-    private najdiNajblizsiElement(): void {
-        const viewportMiddle = window.innerHeight / 2;
-        const elements = this.obsahStranky.querySelectorAll<HTMLElement>("section p, ul, ol");
-
-        let closest: HTMLElement | null = null;
-        let minDistance = Infinity;
-
-        elements.forEach((el) => {
-            if (this.jePlatnyElement(el)) {
-                const rect = el.getBoundingClientRect();
-                const elementMiddle = rect.top + rect.height / 2;
-                const distance = Math.abs(elementMiddle - viewportMiddle);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closest = el;
-                }
-            }
-        });
-
-        if (closest && closest !== this.aktualnyElement) {
-            this.zvyraznitElement(closest);
-        }
     }
 
     private pridatEventListenery(): void {

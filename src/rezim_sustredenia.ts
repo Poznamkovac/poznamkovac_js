@@ -72,8 +72,24 @@ export class MwZenRezim {
     private aplikovatZenStyl(): void {
         const style = document.createElement('style');
         style.id = 'zen-mode-style';
+        // TODO: zlepšiť:
         style.textContent = `
-            body.zen-mode .zen-highlighted { background-color: rgba(255, 0, 255, 0.1); }
+            body.zen-mode #mw-content-text .mw-parser-output *:not(section, div, blockquote) {
+                filter: blur(1px) opacity(0.3);
+            }
+            body.zen-mode #mw-content-text .mw-parser-output .mw-headline,
+            body.zen-mode #mw-content-text .mw-parser-output h1,
+            body.zen-mode #mw-content-text .mw-parser-output h2,
+            body.zen-mode #mw-content-text .mw-parser-output h3,
+            body.zen-mode #mw-content-text .mw-parser-output h4,
+            body.zen-mode #mw-content-text .mw-parser-output h5,
+            body.zen-mode #mw-content-text .mw-parser-output h6 {
+                filter: opacity(0.65) !important;
+            }
+            body.zen-mode .zen-highlighted, body.zen-mode .zen-highlighted *,
+            #mapa, #mapa * {
+                filter: initial !important;
+            }
         `;
         document.head.appendChild(style);
     }

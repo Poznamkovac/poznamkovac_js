@@ -24,10 +24,15 @@ export class MwZenRezim {
     }
 
     private zobratNaZvyraznenie(): HTMLElement[] {
-        const elementy = Array.from(this.obsahStranky.querySelectorAll("section p, ul, ol")) as HTMLElement[];
+        const elementy = Array.from(this.obsahStranky.querySelectorAll("section p, ul, ol, h1, h2, h3, h4, h5, h6")) as HTMLElement[];
 
         return elementy.filter((element) => {
-            return element.tagName === "P" ? element.textContent?.length !== 0 : true;
+            if (element.tagName === "P" || element.tagName.startsWith("H")) {
+                return element.textContent?.trim().length !== 0;
+            } else if (element.tagName === "UL" || element.tagName === "OL") {
+                return Array.from(element.children).some(li => li.textContent?.trim().length !== 0);
+            }
+            return false;
         });
     }
 
@@ -54,7 +59,8 @@ export class MwZenRezim {
         tlacidlo.appendChild(textTlacidla);
         liTlacidlo.appendChild(tlacidlo);
 
-        tlacidlo.addEventListener("click", () => {
+        tlacidlo.addEventListener("click", (e) => {
+            e.preventDefault();
             this.prepnutZen();
         });
 
@@ -89,8 +95,8 @@ export class MwZenRezim {
         style.id = 'zen-mode-style';
         style.textContent = `
             body.zen-mode { background-color: #1a1a1a; }
-            body.zen-mode #content * { color: #666; }
-            body.zen-mode .zen-highlighted, body.zen-mode .zen-highlighted * { color: #fff !important; background-color: #2a2a2a; }
+            body.zen-mode #content * { color: #666 !important; }
+            body.zen-mode .zen-highlighted { color: #fff !important; background-color: #2a2a2a; }
         `;
         document.head.appendChild(style);
     }
@@ -111,7 +117,12 @@ export class MwZenRezim {
         const element = this.naZvyraznenie[index];
         if (element) {
             element.classList.add('zen-highlighted');
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const rect = element.getBoundingClientRect();
+            const scrollTarget = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2;
+            window.scrollTo({
+                top: scrollTarget,
+                behavior: 'smooth'
+            });
         }
     }
 
@@ -136,7 +147,8 @@ export class MwZenRezim {
 
         this.naZvyraznenie.forEach((el, index) => {
             const rect = el.getBoundingClientRect();
-            const distance = Math.abs(rect.top + rect.height / 2 - viewportMiddle);
+            const elementMiddle = rect.top + rect.height / 2;
+            const distance = Math.abs(elementMiddle - viewportMiddle);
             if (distance < minDistance) {
                 minDistance = distance;
                 closest = index;
@@ -150,19 +162,29 @@ export class MwZenRezim {
     }
 
     private pridatScrolovanieListenerov(): void {
-        let timeout: Timer;
+        let timeout: number;
+        let lastScrollPosition = window.scrollY;
+
         window.addEventListener('scroll', () => {
             if (this.zen) {
                 clearTimeout(timeout);
-                timeout = setTimeout(() => this.najdiNajblizsiElement(), 100);
+                timeout = window.setTimeout(() => {
+                    const currentScrollPosition = window.scrollY;
+                    if (Math.abs(currentScrollPosition - lastScrollPosition) > 50) {
+                        this.najdiNajblizsiElement();
+                        lastScrollPosition = currentScrollPosition;
+                    }
+                }, 100);
             }
         });
 
         document.addEventListener('keydown', (event) => {
             if (this.zen) {
                 if (event.key === 'ArrowDown' || event.key === 'j') {
+                    event.preventDefault();
                     this.zvyraznitDalsi();
                 } else if (event.key === 'ArrowUp' || event.key === 'k') {
+                    event.preventDefault();
                     this.zvyraznitPredosli();
                 }
             }

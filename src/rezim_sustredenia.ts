@@ -6,41 +6,24 @@ export class MwZenRezim {
     private tlacidlo: HTMLLIElement;
     private ikona: HTMLImageElement;
 
-    private naZvyraznenie: HTMLElement[] = [];
     private zen: boolean = false;
-    private aktualnePozicia: number = 0;
+    private aktualnyElement: HTMLElement | null = null;
 
     constructor(obsahStranky: HTMLElement) {
         this.obsahStranky = obsahStranky;
-
         this.ikona = this.vytvoritIkonu();
         this.tlacidlo = this.vytvoritTlacidlo();
     }
 
     public inicializovat(): void {
-        this.naZvyraznenie = this.zobratNaZvyraznenie();
         this.pridatTlacidlo();
         this.pridatScrolovanieListenerov();
-    }
-
-    private zobratNaZvyraznenie(): HTMLElement[] {
-        const elementy = Array.from(this.obsahStranky.querySelectorAll("section p, ul, ol, h1, h2, h3, h4, h5, h6")) as HTMLElement[];
-
-        return elementy.filter((element) => {
-            if (element.tagName === "P" || element.tagName.startsWith("H")) {
-                return element.textContent?.trim().length !== 0;
-            } else if (element.tagName === "UL" || element.tagName === "OL") {
-                return Array.from(element.children).some(li => li.textContent?.trim().length !== 0);
-            }
-            return false;
-        });
     }
 
     private vytvoritIkonu(): HTMLImageElement {
         const ikona = document.createElement("img");
         ikona.src = EYE_CLOSED;
         ikona.alt = "👁️";
-
         return ikona;
     }
 
@@ -76,13 +59,17 @@ export class MwZenRezim {
         this.ikona.src = EYE_OPEN;
         this.zen = true;
         this.aplikovatZenStyl();
-        this.zvyraznitElement(this.aktualnePozicia);
+        this.najdiNajblizsiElement();
     }
 
     private vypnutZen(): void {
         this.ikona.src = EYE_CLOSED;
         this.zen = false;
         this.odstranZenStyl();
+        if (this.aktualnyElement) {
+            this.aktualnyElement.classList.remove('zen-highlighted');
+            this.aktualnyElement = null;
+        }
     }
 
     private prepnutZen(): void {
@@ -107,69 +94,103 @@ export class MwZenRezim {
         if (style) {
             style.remove();
         }
-        this.naZvyraznenie.forEach(el => el.classList.remove('zen-highlighted'));
     }
 
-    private zvyraznitElement(index: number): void {
-        if (!this.zen) return;
-        
-        this.naZvyraznenie.forEach(el => el.classList.remove('zen-highlighted'));
-        const element = this.naZvyraznenie[index];
-        if (element) {
-            element.classList.add('zen-highlighted');
-            const rect = element.getBoundingClientRect();
-            const scrollTarget = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2;
-            window.scrollTo({
-                top: scrollTarget,
-                behavior: 'smooth'
-            });
+    private jePlatnyElement(element: Element): boolean {
+        if (element.tagName === "P" || element.tagName.startsWith("H")) {
+            return element.textContent?.trim().length !== 0;
+        } else if (element.tagName === "UL" || element.tagName === "OL") {
+            return Array.from(element.children).some(li => li.textContent?.trim().length !== 0);
         }
+        return false;
+    }
+
+    private najdiDalsiElement(startElement: Element, smer: 'next' | 'previous'): HTMLElement | null {
+        let currentElement: Element | null = startElement;
+        
+        while (currentElement) {
+            currentElement = smer === 'next' ? currentElement.nextElementSibling : currentElement.previousElementSibling;
+            
+            if (!currentElement) {
+                const parentSection = startElement.closest('section');
+                if (parentSection) {
+                    currentElement = smer === 'next' ? parentSection.nextElementSibling : parentSection.previousElementSibling;
+                }
+            }
+            
+            if (currentElement && this.jePlatnyElement(currentElement)) {
+                return currentElement as HTMLElement;
+            }
+        }
+        
+        return null;
+    }
+
+    private zvyraznitElement(element: HTMLElement): void {
+        if (this.aktualnyElement) {
+            this.aktualnyElement.classList.remove('zen-highlighted');
+        }
+        this.aktualnyElement = element;
+        element.classList.add('zen-highlighted');
+        const rect = element.getBoundingClientRect();
+        const scrollTarget = window.pageYOffset + rect.top - (window.innerHeight - rect.height) / 2;
+        window.scrollTo({
+            top: scrollTarget,
+            behavior: 'smooth'
+        });
     }
 
     private zvyraznitDalsi(): void {
-        if (this.aktualnePozicia < this.naZvyraznenie.length - 1) {
-            this.aktualnePozicia++;
-            this.zvyraznitElement(this.aktualnePozicia);
+        if (this.aktualnyElement) {
+            const dalsiElement = this.najdiDalsiElement(this.aktualnyElement, 'next');
+            if (dalsiElement) {
+                this.zvyraznitElement(dalsiElement);
+            }
         }
     }
 
     private zvyraznitPredosli(): void {
-        if (this.aktualnePozicia > 0) {
-            this.aktualnePozicia--;
-            this.zvyraznitElement(this.aktualnePozicia);
+        if (this.aktualnyElement) {
+            const predoslyElement = this.najdiDalsiElement(this.aktualnyElement, 'previous');
+            if (predoslyElement) {
+                this.zvyraznitElement(predoslyElement);
+            }
         }
     }
 
     private najdiNajblizsiElement(): void {
         const viewportMiddle = window.innerHeight / 2;
-        let closest = 0;
+        let closest: HTMLElement | null = null;
         let minDistance = Infinity;
 
-        this.naZvyraznenie.forEach((el, index) => {
-            const rect = el.getBoundingClientRect();
-            const elementMiddle = rect.top + rect.height / 2;
-            const distance = Math.abs(elementMiddle - viewportMiddle);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closest = index;
+        const elements = this.obsahStranky.querySelectorAll("section p, ul, ol, h1, h2, h3, h4, h5, h6");
+        
+        elements.forEach((el) => {
+            if (this.jePlatnyElement(el)) {
+                const rect = el.getBoundingClientRect();
+                const elementMiddle = rect.top + rect.height / 2;
+                const distance = Math.abs(elementMiddle - viewportMiddle);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = el as HTMLElement;
+                }
             }
         });
 
-        if (closest !== this.aktualnePozicia) {
-            this.aktualnePozicia = closest;
-            this.zvyraznitElement(this.aktualnePozicia);
+        if (closest && closest !== this.aktualnyElement) {
+            this.zvyraznitElement(closest);
         }
     }
 
     private pridatScrolovanieListenerov(): void {
         let timeout: number;
-        let lastScrollPosition = window.scrollY;
+        let lastScrollPosition = window.pageYOffset;
 
         window.addEventListener('scroll', () => {
             if (this.zen) {
                 clearTimeout(timeout);
                 timeout = window.setTimeout(() => {
-                    const currentScrollPosition = window.scrollY;
+                    const currentScrollPosition = window.pageYOffset;
                     if (Math.abs(currentScrollPosition - lastScrollPosition) > 50) {
                         this.najdiNajblizsiElement();
                         lastScrollPosition = currentScrollPosition;

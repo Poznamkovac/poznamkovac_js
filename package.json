@@ -13,5 +13,8 @@
   "description": "Pojmová mapa pre https://poznamkovac.eu",
   "dependencies": {
     "vis-network": "^9"
+  },
+  "devDependencies": {
+    "bun-types": "^1.1.26"
   }
 }

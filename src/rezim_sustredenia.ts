@@ -105,21 +105,21 @@ export class MwZenRezim {
         return false;
     }
 
-    private najdiDalsiElement(startElement: Element, smer: 'next' | 'previous'): HTMLElement | null {
-        let currentElement: Element | null = startElement;
+    private najdiElement(startElement: Element, smer: 'next' | 'previous'): HTMLElement | null {
+        let aktualny: Element | null = startElement;
         
-        while (currentElement) {
-            currentElement = smer === 'next' ? currentElement.nextElementSibling : currentElement.previousElementSibling;
+        while (aktualny) {
+            aktualny = smer === 'next' ? aktualny.nextElementSibling : aktualny.previousElementSibling;
             
-            if (!currentElement) {
+            if (!aktualny) {
                 const parentSection = startElement.closest('section');
                 if (parentSection) {
-                    currentElement = smer === 'next' ? parentSection.nextElementSibling : parentSection.previousElementSibling;
+                    aktualny = smer === 'next' ? parentSection.nextElementSibling : parentSection.previousElementSibling;
                 }
             }
             
-            if (currentElement && this.jePlatnyElement(currentElement)) {
-                return currentElement as HTMLElement;
+            if (aktualny && this.jePlatnyElement(aktualny)) {
+                return aktualny as HTMLElement;
             }
         }
         
@@ -142,7 +142,7 @@ export class MwZenRezim {
 
     private zvyraznitDalsi(): void {
         if (this.aktualnyElement) {
-            const dalsiElement = this.najdiDalsiElement(this.aktualnyElement, 'next');
+            const dalsiElement = this.najdiElement(this.aktualnyElement, 'next');
             if (dalsiElement) {
                 this.zvyraznitElement(dalsiElement);
             }
@@ -151,7 +151,7 @@ export class MwZenRezim {
 
     private zvyraznitPredosli(): void {
         if (this.aktualnyElement) {
-            const predoslyElement = this.najdiDalsiElement(this.aktualnyElement, 'previous');
+            const predoslyElement = this.najdiElement(this.aktualnyElement, 'previous');
             if (predoslyElement) {
                 this.zvyraznitElement(predoslyElement);
             }

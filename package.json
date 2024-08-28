@@ -1,10 +1,10 @@
 {
-  "name": "mw_pojmova_mapa",
-  "module": "pojmova_mapa.ts",
+  "name": "poznamkovac_veci",
+  "module": "poznamkovac.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build pojmova_mapa.ts --minify --outdir=dist --target=browser"
+    "build": "bun build poznamkovac.ts --minify --outdir=dist --target=browser"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

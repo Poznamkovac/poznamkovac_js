@@ -3,7 +3,7 @@ import { DataSet } from "vis-data/peer";
 import { Network } from "vis-network/peer";
 
 export class MwPojmovaMapa {
-    private poznamkyElement: HTMLElement;
+    private obsahStranky: HTMLElement;
     private elementMapy: HTMLElement;
     private mapa: { vrcholy: Node[]; hrany: Edge[] };
     private pojmova_mapa: Network | null = null;
@@ -20,19 +20,19 @@ export class MwPojmovaMapa {
         [102, 178, 255], // modrá (ako obloha)
     ];
 
-    constructor(poznamkyElement: HTMLElement, elementMapy: HTMLDivElement) {
-        this.poznamkyElement = poznamkyElement;
+    constructor(obsahStranky: HTMLElement, elementMapy: HTMLDivElement) {
+        this.obsahStranky = obsahStranky;
         this.elementMapy = elementMapy;
         this.mapa = { vrcholy: [], hrany: [] };
     }
 
-    public inicializovat(): void {
+    public vykreslit(): void {
         this.vytvoritDataMapy();
         this.vykreslitMapu();
     }
 
     private vytvoritDataMapy(): void {
-        const nadpisy = this.poznamkyElement.querySelectorAll("h1, h2, h3, h4, h5, h6") as NodeListOf<HTMLHeadingElement>;
+        const nadpisy = this.obsahStranky.querySelectorAll("h1, h2, h3, h4, h5, h6") as NodeListOf<HTMLHeadingElement>;
         let posledneNadpisy: number[] = [];
         let indexSkupiny = 0;
         let farbySkupin: { [key: number]: number } = {};
@@ -137,7 +137,6 @@ export class MwPojmovaMapa {
         this.pojmova_mapa = new Network(this.elementMapy, dataSiete, nastavenia);
 
         this.nastavitUdalosti();
-        this.pridatInfoText();
     }
 
     private nastavitUdalosti(): void {
@@ -152,32 +151,6 @@ export class MwPojmovaMapa {
         });
     }
 
-    private pridatInfoText(): void {
-        let info = document.createElement("small");
-        info.style.fontSize = "12px";
-        info.innerHTML += "Kliknutím na vrchol sa presuniete na príslušnú sekciu.";
-
-        this.elementMapy.parentNode?.insertBefore(info, this.elementMapy.nextSibling);
-    }
-
-    private skratitDiv(element: HTMLDivElement, maxDlzka: number = 2000): HTMLDivElement {
-        let novyElement = document.createElement(element.tagName) as HTMLDivElement;
-        let pocitadloDlzok = 0;
-
-        for (let child of Array.from(element.childNodes)) {
-            pocitadloDlzok += child.textContent?.length || 0;
-
-            if (pocitadloDlzok > maxDlzka) {
-                novyElement.appendChild(document.createTextNode("..."));
-                break;
-            }
-
-            novyElement.appendChild(child.cloneNode(true));
-        }
-
-        return novyElement;
-    }
-
     private ziskatLevelNadpisu(nadpis: Element): number {
         return parseInt(nadpis.tagName.substring(1), 10);
     }
@@ -189,14 +162,14 @@ export class MwPojmovaMapa {
     }
 }
 
-globalThis.addEventListener("load", () => {
-    const poznamkyElement = document.querySelector("#mw-content-text .mw-parser-output") as HTMLElement;
+export default function vykreslitMapu() {
+    const obsahStranky = document.querySelector("#mw-content-text .mw-parser-output") as HTMLElement;
     const elementMapy = document.getElementById("mapa") as HTMLDivElement;
 
-    if (elementMapy !== null && poznamkyElement !== null) {
-        const pojmovaMapa = new MwPojmovaMapa(poznamkyElement, elementMapy);
-        pojmovaMapa.inicializovat();
+    if (elementMapy && obsahStranky) {
+        const pojmovaMapa = new MwPojmovaMapa(obsahStranky, elementMapy);
+        pojmovaMapa.vykreslit();
     } else {
         console.log("Na stránke sa nenachádza pojmová mapa.");
     }
-});
+}

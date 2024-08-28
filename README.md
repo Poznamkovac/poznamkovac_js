@@ -1,6 +1,6 @@
-# poznamkovac_veci
+# MediaWiki Poznámkovač
 
-Frontend veci pre [poznamkovac.eu](https://poznamkovac.eu) (pozri priečinok [`./src`](./src))
+Frontend nástroje a veci pre [poznamkovac.eu](https://poznamkovac.eu) (pozri priečinok [`./src`](./src))
 
 ```bash
 bun install

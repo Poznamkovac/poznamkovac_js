@@ -220,7 +220,10 @@ export class MwZenRezim {
 
 export default function rezimSustredenia() {
     const obsahStranky = document.querySelector<HTMLElement>("#mw-content-text .mw-parser-output");
-    if (obsahStranky) {
+    const search = new URLSearchParams(globalThis.window.location.search);
+    const veaction = search.get("veaction");
+
+    if (veaction != "edit" && veaction != "editsource"  && obsahStranky) {
         new MwZenRezim(obsahStranky).inicializovat();
     } else {
         console.warn("Stránka nepodporuje režim sústredenia.");

@@ -230,8 +230,6 @@ export default function rezimSustredenia() {
     const veaction = search.get("veaction");
 
     if (obsahStranky && veaction != "edit" && veaction != "editsource") {
-        new MwZenRezim(obsahStranky).inicializovat();
-
         const zen = new MwZenRezim(obsahStranky)
         zen.inicializovat();
 

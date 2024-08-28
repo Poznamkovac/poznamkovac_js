@@ -20,6 +20,12 @@ export class MwZenRezim {
         this.pridatEventListenery();
     }
 
+    public odstranit() {
+        this.zen = false;
+        this.odstranZenStyl();
+        this.tlacidlo.remove();
+    }
+
     private vytvoritIkonu(): HTMLImageElement {
         const ikona = document.createElement("img");
         ikona.src = EYE_OPEN;
@@ -223,8 +229,16 @@ export default function rezimSustredenia() {
     const search = new URLSearchParams(globalThis.window.location.search);
     const veaction = search.get("veaction");
 
-    if (veaction != "edit" && veaction != "editsource"  && obsahStranky) {
+    if (obsahStranky && veaction != "edit" && veaction != "editsource") {
         new MwZenRezim(obsahStranky).inicializovat();
+
+        const zen = new MwZenRezim(obsahStranky)
+        zen.inicializovat();
+
+        const veedit = globalThis.document.getElementById("ca-ve-edit") as HTMLAnchorElement;
+        veedit.addEventListener("click", () => {
+            zen.odstranit();
+        });
     } else {
         console.warn("Stránka nepodporuje režim sústredenia.");
     }

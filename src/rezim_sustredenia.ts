@@ -2,9 +2,9 @@ const EYE_OPEN = "https://upload.wikimedia.org/wikipedia/commons/d/d8/OOjs_UI_ic
 const EYE_CLOSED = "https://upload.wikimedia.org/wikipedia/commons/3/30/OOjs_UI_icon_eyeClosed-progressive.svg";
 
 export class MwZenRezim {
-    private obsahStranky: HTMLElement;
-    private tlacidlo: HTMLLIElement;
-    private ikona: HTMLImageElement;
+    private readonly obsahStranky: HTMLElement;
+    private readonly tlacidlo: HTMLLIElement;
+    private readonly ikona: HTMLImageElement;
 
     private zen: boolean = false;
     private aktualnyElement: HTMLElement | null = null;
@@ -17,7 +17,7 @@ export class MwZenRezim {
 
     public inicializovat(): void {
         this.pridatTlacidlo();
-        this.pridatScrolovanieListenerov();
+        this.pridatEventListenery();
     }
 
     private vytvoritIkonu(): HTMLImageElement {
@@ -38,8 +38,7 @@ export class MwZenRezim {
 
         textTlacidla.textContent = tlacidlo.title = "Režim sústredenia";
 
-        tlacidlo.appendChild(this.ikona);
-        tlacidlo.appendChild(textTlacidla);
+        tlacidlo.append(this.ikona, textTlacidla);
         liTlacidlo.appendChild(tlacidlo);
 
         tlacidlo.addEventListener("click", (e) => {
@@ -55,29 +54,22 @@ export class MwZenRezim {
         nav?.prepend(this.tlacidlo);
     }
 
-    private zapnutZen(): void {
-        this.ikona.src = EYE_OPEN;
-        this.zen = true;
-        this.aplikovatZenStyl();
-        this.najdiNajblizsiElement();
-    }
+    private prepnutZen(): void {
+        this.zen = !this.zen;
+        this.ikona.src = this.zen ? EYE_OPEN : EYE_CLOSED;
+        document.body.classList.toggle('zen-mode', this.zen);
 
-    private vypnutZen(): void {
-        this.ikona.src = EYE_CLOSED;
-        this.zen = false;
-        this.odstranZenStyl();
-        if (this.aktualnyElement) {
-            this.aktualnyElement.classList.remove('zen-highlighted');
+        if (this.zen) {
+            this.aplikovatZenStyl();
+            this.najdiNajblizsiElement();
+        } else {
+            this.odstranZenStyl();
+            this.aktualnyElement?.classList.remove('zen-highlighted');
             this.aktualnyElement = null;
         }
     }
 
-    private prepnutZen(): void {
-        this.zen ? this.vypnutZen() : this.zapnutZen();
-    }
-
     private aplikovatZenStyl(): void {
-        document.body.classList.add('zen-mode');
         const style = document.createElement('style');
         style.id = 'zen-mode-style';
         style.textContent = `
@@ -87,17 +79,13 @@ export class MwZenRezim {
     }
 
     private odstranZenStyl(): void {
-        document.body.classList.remove('zen-mode');
-        const style = document.getElementById('zen-mode-style');
-        if (style) {
-            style.remove();
-        }
+        document.getElementById('zen-mode-style')?.remove();
     }
 
     private jePlatnyElement(element: Element): boolean {
-        if (element.tagName === "P") {
+        if (element instanceof HTMLParagraphElement) {
             return element.textContent?.trim().length !== 0;
-        } else if (element.tagName === "UL" || element.tagName === "OL") {
+        } else if (element instanceof HTMLUListElement || element instanceof HTMLOListElement) {
             return Array.from(element.children).some(li => li.textContent?.trim().length !== 0);
         }
         return false;
@@ -158,46 +146,22 @@ export class MwZenRezim {
     }
 
     private zvyraznitElement(element: HTMLElement): void {
-        if (this.aktualnyElement) {
-            this.aktualnyElement.classList.remove('zen-highlighted');
-        }
-
+        this.aktualnyElement?.classList.remove('zen-highlighted');
         this.aktualnyElement = element;
         element.classList.add('zen-highlighted');
 
         const rect = element.getBoundingClientRect();
         const scrollTarget = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2;
-        window.scrollTo({
-            top: scrollTarget,
-            behavior: 'smooth'
-        });
-    }
-
-    private zvyraznitDalsi(): void {
-        if (this.aktualnyElement) {
-            const dalsiElement = this.najdiElement(this.aktualnyElement, 'next');
-            if (dalsiElement) {
-                this.zvyraznitElement(dalsiElement);
-            }
-        }
-    }
-
-    private zvyraznitPredosli(): void {
-        if (this.aktualnyElement) {
-            const predoslyElement = this.najdiElement(this.aktualnyElement, 'previous');
-            if (predoslyElement) {
-                this.zvyraznitElement(predoslyElement);
-            }
-        }
+        window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
     }
 
     private najdiNajblizsiElement(): void {
         const viewportMiddle = window.innerHeight / 2;
+        const elements = this.obsahStranky.querySelectorAll<HTMLElement>("section p, ul, ol");
+
         let closest: HTMLElement | null = null;
         let minDistance = Infinity;
 
-        const elements = this.obsahStranky.querySelectorAll("section p, ul, ol, h1, h2, h3, h4, h5, h6");
-        
         elements.forEach((el) => {
             if (this.jePlatnyElement(el)) {
                 const rect = el.getBoundingClientRect();
@@ -205,7 +169,7 @@ export class MwZenRezim {
                 const distance = Math.abs(elementMiddle - viewportMiddle);
                 if (distance < minDistance) {
                     minDistance = distance;
-                    closest = el as HTMLElement;
+                    closest = el;
                 }
             }
         });
@@ -215,14 +179,14 @@ export class MwZenRezim {
         }
     }
 
-    private pridatScrolovanieListenerov(): void {
-        let timeout: number;
+    private pridatEventListenery(): void {
+        let scrollTimeout: number;
         let lastScrollPosition = window.scrollY;
 
         window.addEventListener('scroll', () => {
             if (this.zen) {
-                clearTimeout(timeout);
-                timeout = window.setTimeout(() => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = window.setTimeout(() => {
                     const currentScrollPosition = window.scrollY;
                     if (Math.abs(currentScrollPosition - lastScrollPosition) > 50) {
                         this.najdiNajblizsiElement();
@@ -244,15 +208,27 @@ export class MwZenRezim {
             }
         });
     }
+
+    private zvyraznitDalsi(): void {
+        if (this.aktualnyElement) {
+            const dalsiElement = this.najdiElement(this.aktualnyElement, 'next');
+            if (dalsiElement) this.zvyraznitElement(dalsiElement);
+        }
+    }
+
+    private zvyraznitPredosli(): void {
+        if (this.aktualnyElement) {
+            const predoslyElement = this.najdiElement(this.aktualnyElement, 'previous');
+            if (predoslyElement) this.zvyraznitElement(predoslyElement);
+        }
+    }
 }
 
 export default function rezimSustredenia() {
-    const obsahStranky = document.querySelector("#mw-content-text .mw-parser-output") as HTMLElement;
-
+    const obsahStranky = document.querySelector<HTMLElement>("#mw-content-text .mw-parser-output");
     if (obsahStranky) {
-        const zen = new MwZenRezim(obsahStranky);
-        zen.inicializovat();
+        new MwZenRezim(obsahStranky).inicializovat();
     } else {
-        console.log("Stránka nepodporuje režim sústredenia.");
+        console.warn("Stránka nepodporuje režim sústredenia.");
     }
 }

@@ -170,6 +170,6 @@ export default function vykreslitMapu() {
         const pojmovaMapa = new MwPojmovaMapa(obsahStranky, elementMapy);
         pojmovaMapa.vykreslit();
     } else {
-        console.log("Na stránke sa nenachádza pojmová mapa.");
+        console.warn("Na stránke sa nenachádza pojmová mapa.");
     }
 }

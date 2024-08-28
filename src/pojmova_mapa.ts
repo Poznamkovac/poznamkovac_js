@@ -162,7 +162,7 @@ export class MwPojmovaMapa {
     }
 }
 
-export default function vykreslitMapu() {
+export default async function vykreslitMapu() {
     const obsahStranky = document.querySelector("#mw-content-text .mw-parser-output") as HTMLElement;
     const elementMapy = document.getElementById("mapa") as HTMLDivElement;
 

@@ -81,9 +81,7 @@ export class MwZenRezim {
         const style = document.createElement('style');
         style.id = 'zen-mode-style';
         style.textContent = `
-            body.zen-mode { background-color: #1a1a1a; }
-            body.zen-mode #content * { color: #666 !important; }
-            body.zen-mode .zen-highlighted { color: #fff !important; background-color: #2a2a2a; }
+            body.zen-mode .zen-highlighted { background-color: rgba(255, 0, 255, 0.1); }
         `;
         document.head.appendChild(style);
     }
@@ -97,7 +95,7 @@ export class MwZenRezim {
     }
 
     private jePlatnyElement(element: Element): boolean {
-        if (element.tagName === "P" || element.tagName.startsWith("H")) {
+        if (element.tagName === "P") {
             return element.textContent?.trim().length !== 0;
         } else if (element.tagName === "UL" || element.tagName === "OL") {
             return Array.from(element.children).some(li => li.textContent?.trim().length !== 0);
@@ -106,34 +104,69 @@ export class MwZenRezim {
     }
 
     private najdiElement(startElement: Element, smer: 'next' | 'previous'): HTMLElement | null {
-        let aktualny: Element | null = startElement;
-        
-        while (aktualny) {
-            aktualny = smer === 'next' ? aktualny.nextElementSibling : aktualny.previousElementSibling;
-            
-            if (!aktualny) {
-                const parentSection = startElement.closest('section');
-                if (parentSection) {
-                    aktualny = smer === 'next' ? parentSection.nextElementSibling : parentSection.previousElementSibling;
+        const najdiRekurzivne = (element: Element | null, hladajHore: boolean = false): HTMLElement | null => {
+            if (!element || !this.obsahStranky.contains(element)) {
+                return null;
+            }
+    
+            if (this.jePlatnyElement(element)) {
+                return element as HTMLElement;
+            }
+    
+            const prehladajDeti = (elem: Element): HTMLElement | null => {
+                const dieta = smer === 'next' ? elem.firstElementChild : elem.lastElementChild;
+                return najdiRekurzivne(dieta);
+            };
+    
+            const prehladajSurodencov = (elem: Element): HTMLElement | null => {
+                const surodenca = smer === 'next' ? elem.nextElementSibling : elem.previousElementSibling;
+                return najdiRekurzivne(surodenca);
+            };
+    
+            if (!hladajHore && element.hasChildNodes()) {
+                const vysledokDeti = prehladajDeti(element);
+                if (vysledokDeti) return vysledokDeti;
+            }
+    
+            const vysledokSurodencov = prehladajSurodencov(element);
+            if (vysledokSurodencov) return vysledokSurodencov;
+    
+            const rodic = element.parentElement;
+            if (rodic && this.obsahStranky.contains(rodic)) {
+                if (hladajHore) {
+                    return najdiRekurzivne(rodic, true);
+                } else {
+                    return najdiRekurzivne(rodic, true);
                 }
             }
-            
-            if (aktualny && this.jePlatnyElement(aktualny)) {
-                return aktualny as HTMLElement;
-            }
+    
+            return null;
+        };
+    
+        if (!this.obsahStranky.contains(startElement)) {
+            return null;
         }
-        
-        return null;
+    
+        const prvy = smer === 'next' ? startElement.nextElementSibling : startElement.previousElementSibling;
+        const vysledok = najdiRekurzivne(prvy);
+    
+        if (!vysledok && this.obsahStranky.contains(startElement.parentElement)) {
+            return najdiRekurzivne(startElement.parentElement, true);
+        }
+    
+        return vysledok;
     }
 
     private zvyraznitElement(element: HTMLElement): void {
         if (this.aktualnyElement) {
             this.aktualnyElement.classList.remove('zen-highlighted');
         }
+
         this.aktualnyElement = element;
         element.classList.add('zen-highlighted');
+
         const rect = element.getBoundingClientRect();
-        const scrollTarget = window.pageYOffset + rect.top - (window.innerHeight - rect.height) / 2;
+        const scrollTarget = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2;
         window.scrollTo({
             top: scrollTarget,
             behavior: 'smooth'
@@ -184,18 +217,18 @@ export class MwZenRezim {
 
     private pridatScrolovanieListenerov(): void {
         let timeout: number;
-        let lastScrollPosition = window.pageYOffset;
+        let lastScrollPosition = window.scrollY;
 
         window.addEventListener('scroll', () => {
             if (this.zen) {
                 clearTimeout(timeout);
                 timeout = window.setTimeout(() => {
-                    const currentScrollPosition = window.pageYOffset;
+                    const currentScrollPosition = window.scrollY;
                     if (Math.abs(currentScrollPosition - lastScrollPosition) > 50) {
                         this.najdiNajblizsiElement();
                         lastScrollPosition = currentScrollPosition;
                     }
-                }, 100);
+                }, 150);
             }
         });
 

@@ -4,6 +4,7 @@ const EYE_CLOSED = "https://upload.wikimedia.org/wikipedia/commons/3/30/OOjs_UI_
 export class MwZenRezim {
     private readonly obsahStranky: HTMLElement;
     private readonly tlacidlo: HTMLLIElement;
+    private readonly ovladanie: HTMLDivElement;
     private readonly ikona: HTMLImageElement;
 
     private zen: boolean = false;
@@ -13,10 +14,12 @@ export class MwZenRezim {
         this.obsahStranky = obsahStranky;
         this.ikona = this.vytvoritIkonu();
         this.tlacidlo = this.vytvoritTlacidlo();
+        this.ovladanie = this.vytvoritOvladanie();
     }
 
     public inicializovat(): void {
         this.pridatTlacidlo();
+        this.pridatOvladanie();
         this.pridatEventListenery();
     }
 
@@ -60,6 +63,41 @@ export class MwZenRezim {
         nav?.prepend(this.tlacidlo);
     }
 
+    private vytvoritOvladanie(): HTMLDivElement {
+        const wrapper = document.createElement("div");
+        wrapper.id = "zen-ovladanie";
+
+        const tlacidloDalsi = document.createElement("button");
+        tlacidloDalsi.textContent = "↓";
+        tlacidloDalsi.addEventListener("click", () => {
+            this.zvyraznitDalsi();
+        });
+
+        const tlacidloKoniec = document.createElement("button");
+        tlacidloKoniec.style.fontSize = "12px";
+        tlacidloKoniec.style.marginLeft = "0.5rem";
+        tlacidloKoniec.textContent = "Ukončiť";
+        tlacidloKoniec.addEventListener("click", () => {
+            this.prepnutZen();
+        });
+
+        const tlacidloPredosli = document.createElement("button");
+        tlacidloPredosli.textContent = "↑";
+        tlacidloPredosli.addEventListener("click", () => {
+            this.zvyraznitPredosli();
+        });
+
+        wrapper.append(tlacidloPredosli);
+        wrapper.append(tlacidloDalsi);
+        wrapper.append(tlacidloKoniec);
+
+        return wrapper;
+    }
+
+    private pridatOvladanie(): void {
+        document.body.append(this.ovladanie);
+    }
+
     private prepnutZen(): void {
         this.zen = !this.zen;
         this.ikona.src = this.zen ? EYE_CLOSED : EYE_OPEN;
@@ -78,23 +116,55 @@ export class MwZenRezim {
     private aplikovatZenStyl(): void {
         const style = document.createElement('style');
         style.id = 'zen-mode-style';
-        // TODO: zlepšiť:
         style.textContent = `
-            body.zen-mode #mw-content-text .mw-parser-output *:not(section, div, blockquote) {
+            body.zen-mode #mw-content-text *:not(section, div, blockquote) {
                 filter: blur(1px) opacity(0.3);
             }
-            body.zen-mode #mw-content-text .mw-parser-output .mw-headline,
-            body.zen-mode #mw-content-text .mw-parser-output h1,
-            body.zen-mode #mw-content-text .mw-parser-output h2,
-            body.zen-mode #mw-content-text .mw-parser-output h3,
-            body.zen-mode #mw-content-text .mw-parser-output h4,
-            body.zen-mode #mw-content-text .mw-parser-output h5,
-            body.zen-mode #mw-content-text .mw-parser-output h6 {
+
+            body.zen-mode #mw-content-text .mw-headline,
+            body.zen-mode #mw-content-text h1,
+            body.zen-mode #mw-content-text h2,
+            body.zen-mode #mw-content-text h3,
+            body.zen-mode #mw-content-text h4,
+            body.zen-mode #mw-content-text h5,
+            body.zen-mode #mw-content-text h6 {
                 filter: opacity(0.65) !important;
             }
+
             body.zen-mode .zen-highlighted, body.zen-mode .zen-highlighted *,
             #mapa, #mapa * {
                 filter: initial !important;
+            }
+
+            #zen-ovladanie {
+                display: none;
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                gap: 0.5rem;
+            }
+
+            #zen-ovladanie button {
+                padding: 0.5rem 1rem;
+                border: none;
+                border-radius: 0.5rem;
+                font-size: 1.2rem;
+                cursor: pointer;
+            }
+
+            body.zen-mode #zen-ovladanie {
+                display: inline-flex !important;
+            }
+
+            @media screen and (max-width: 768px) {
+                body.zen-mode #content {
+                    padding: 25vw 0 !important;
+                }
+
+                #zen-ovladanie {
+                    bottom: 120px;
+                }
             }
         `;
         document.head.appendChild(style);
@@ -233,8 +303,8 @@ export default function rezimSustredenia() {
         const zen = new MwZenRezim(obsahStranky)
         zen.inicializovat();
 
-        const veedit = globalThis.document.getElementById("ca-ve-edit") as HTMLAnchorElement;
-        veedit.addEventListener("click", () => {
+        const veedit = globalThis.document.getElementById("ca-ve-edit");
+        veedit?.addEventListener("click", () => {
             zen.odstranit();
         });
     } else {

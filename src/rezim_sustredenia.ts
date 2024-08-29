@@ -101,21 +101,21 @@ export class MwZenRezim {
     private prepnutZen(): void {
         this.zen = !this.zen;
         this.ikona.src = this.zen ? EYE_CLOSED : EYE_OPEN;
-        document.body.classList.toggle('zen-mode', this.zen);
+        document.body.classList.toggle("zen-mode", this.zen);
 
         if (this.zen) {
             this.aplikovatZenStyl();
             this.najdiNajblizsiElement();
         } else {
             this.odstranZenStyl();
-            this.aktualnyElement?.classList.remove('zen-highlighted');
+            this.aktualnyElement?.classList.remove("zen-highlighted");
             this.aktualnyElement = null;
         }
     }
 
     private aplikovatZenStyl(): void {
-        const style = document.createElement('style');
-        style.id = 'zen-mode-style';
+        const style = document.createElement("style");
+        style.id = "zen-mode-style";
         style.textContent = `
             body.zen-mode #mw-content-text *:not(section, div, blockquote) {
                 filter: blur(1px) opacity(0.3);
@@ -159,7 +159,7 @@ export class MwZenRezim {
 
             @media screen and (max-width: 768px) {
                 body.zen-mode #content {
-                    padding: 50vw 0 !important;
+                    padding: 25vh 0 !important;
                 }
 
                 #zen-ovladanie {
@@ -171,14 +171,14 @@ export class MwZenRezim {
     }
 
     private odstranZenStyl(): void {
-        document.getElementById('zen-mode-style')?.remove();
+        document.getElementById("zen-mode-style")?.remove();
     }
 
     private jePlatnyElement(element: Element): boolean {
         if (element instanceof HTMLParagraphElement) {
             return element.textContent?.trim().length !== 0;
         } else if (element instanceof HTMLUListElement || element instanceof HTMLOListElement) {
-            return Array.from(element.children).some(li => li.textContent?.trim().length !== 0);
+            return Array.from(element.children).some((li) => li.textContent?.trim().length !== 0);
         }
         return false;
     }
@@ -211,10 +211,10 @@ export class MwZenRezim {
         }
     }
 
-    private najdiElement(startElement: Element, smer: 'next' | 'previous'): HTMLElement | null {
+    private najdiElement(startElement: Element, smer: "next" | "previous"): HTMLElement | null {
         const krok = (element: Element | null): Element | null => {
             if (!element) return null;
-            return smer === 'next' ? element.nextElementSibling : element.previousElementSibling;
+            return smer === "next" ? element.nextElementSibling : element.previousElementSibling;
         };
 
         const hladajHlboko = (element: Element | null): HTMLElement | null => {
@@ -222,7 +222,7 @@ export class MwZenRezim {
                 if (this.jePlatnyElement(element)) {
                     return element as HTMLElement;
                 }
-                const result = hladajHlboko(smer === 'next' ? element.firstElementChild : element.lastElementChild);
+                const result = hladajHlboko(smer === "next" ? element.firstElementChild : element.lastElementChild);
                 if (result) return result;
                 element = krok(element);
             }
@@ -240,20 +240,20 @@ export class MwZenRezim {
     }
 
     private zvyraznitElement(element: HTMLElement): void {
-        this.aktualnyElement?.classList.remove('zen-highlighted');
+        this.aktualnyElement?.classList.remove("zen-highlighted");
         this.aktualnyElement = element;
-        element.classList.add('zen-highlighted');
+        element.classList.add("zen-highlighted");
 
         const rect = element.getBoundingClientRect();
         const scrollTarget = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2;
-        window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+        window.scrollTo({ top: scrollTarget, behavior: "smooth" });
     }
 
     private pridatEventListenery(): void {
         let scrollTimeout: number;
         let lastScrollPosition = window.scrollY;
 
-        window.addEventListener('scroll', () => {
+        window.addEventListener("scroll", () => {
             if (this.zen) {
                 clearTimeout(scrollTimeout);
                 scrollTimeout = window.setTimeout(() => {
@@ -266,12 +266,12 @@ export class MwZenRezim {
             }
         });
 
-        document.addEventListener('keydown', (event) => {
+        document.addEventListener("keydown", (event) => {
             if (this.zen) {
-                if (event.key === 'ArrowDown' || event.key === 'j') {
+                if (event.key === "ArrowDown" || event.key === "j") {
                     event.preventDefault();
                     this.zvyraznitDalsi();
-                } else if (event.key === 'ArrowUp' || event.key === 'k') {
+                } else if (event.key === "ArrowUp" || event.key === "k") {
                     event.preventDefault();
                     this.zvyraznitPredosli();
                 }
@@ -281,14 +281,14 @@ export class MwZenRezim {
 
     private zvyraznitDalsi(): void {
         if (this.aktualnyElement) {
-            const dalsiElement = this.najdiElement(this.aktualnyElement, 'next');
+            const dalsiElement = this.najdiElement(this.aktualnyElement, "next");
             if (dalsiElement) this.zvyraznitElement(dalsiElement);
         }
     }
 
     private zvyraznitPredosli(): void {
         if (this.aktualnyElement) {
-            const predoslyElement = this.najdiElement(this.aktualnyElement, 'previous');
+            const predoslyElement = this.najdiElement(this.aktualnyElement, "previous");
             if (predoslyElement) this.zvyraznitElement(predoslyElement);
         }
     }
@@ -300,7 +300,7 @@ export default function rezimSustredenia() {
     const veaction = search.get("veaction");
 
     if (obsahStranky && veaction != "edit" && veaction != "editsource") {
-        const zen = new MwZenRezim(obsahStranky)
+        const zen = new MwZenRezim(obsahStranky);
         zen.inicializovat();
 
         const veedit = globalThis.document.getElementById("ca-ve-edit");

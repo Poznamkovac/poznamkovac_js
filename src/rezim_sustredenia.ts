@@ -159,7 +159,7 @@ export class MwZenRezim {
 
             @media screen and (max-width: 768px) {
                 body.zen-mode #content {
-                    padding: 25vw 0 !important;
+                    padding: 50vw 0 !important;
                 }
 
                 #zen-ovladanie {

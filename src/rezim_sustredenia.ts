@@ -21,6 +21,7 @@ export class MwZenRezim {
         this.pridatTlacidlo();
         this.pridatOvladanie();
         this.pridatEventListenery();
+        this.aplikovatZenStyl();
     }
 
     public odstranit() {
@@ -104,10 +105,8 @@ export class MwZenRezim {
         document.body.classList.toggle("zen-mode", this.zen);
 
         if (this.zen) {
-            this.aplikovatZenStyl();
             this.najdiNajblizsiElement();
         } else {
-            this.odstranZenStyl();
             this.aktualnyElement?.classList.remove("zen-highlighted");
             this.aktualnyElement = null;
         }
@@ -117,21 +116,21 @@ export class MwZenRezim {
         const style = document.createElement("style");
         style.id = "zen-mode-style";
         style.textContent = `
-            body.zen-mode #mw-content-text *:not(section, div, blockquote) {
+            .zen-mode #mw-content-text *:not(section, div, blockquote) {
                 filter: blur(1px) opacity(0.3);
             }
 
-            body.zen-mode #mw-content-text .mw-headline,
-            body.zen-mode #mw-content-text h1,
-            body.zen-mode #mw-content-text h2,
-            body.zen-mode #mw-content-text h3,
-            body.zen-mode #mw-content-text h4,
-            body.zen-mode #mw-content-text h5,
-            body.zen-mode #mw-content-text h6 {
+            .zen-mode #mw-content-text .mw-headline,
+            .zen-mode #mw-content-text h1,
+            .zen-mode #mw-content-text h2,
+            .zen-mode #mw-content-text h3,
+            .zen-mode #mw-content-text h4,
+            .zen-mode #mw-content-text h5,
+            .zen-mode #mw-content-text h6 {
                 filter: opacity(0.65) !important;
             }
 
-            body.zen-mode .zen-highlighted, body.zen-mode .zen-highlighted *,
+            .zen-mode .zen-highlighted, .zen-mode .zen-highlighted *,
             #mapa, #mapa * {
                 filter: initial !important;
             }
@@ -153,16 +152,12 @@ export class MwZenRezim {
                 cursor: pointer;
             }
 
-            #zen-ovladanie {
-                display: none;
-            }
-
-            body.zen-mode #zen-ovladanie {
-                display: inline-flex !important;
+            .zen-mode #zen-ovladanie {
+                display: inline-flex;
             }
 
             @media screen and (max-width: 768px) {
-                body.zen-mode #content {
+                .zen-mode #content {
                     padding: 25vh 0 !important;
                 }
 

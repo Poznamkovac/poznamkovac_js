@@ -153,6 +153,10 @@ export class MwZenRezim {
                 cursor: pointer;
             }
 
+            #zen-ovladanie {
+                display: none;
+            }
+
             body.zen-mode #zen-ovladanie {
                 display: inline-flex !important;
             }

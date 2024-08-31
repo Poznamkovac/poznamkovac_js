@@ -167,7 +167,7 @@ export class MwZenRezim {
                 }
 
                 #zen-ovladanie {
-                    bottom: 120px;
+                    bottom: 70px;
                 }
             }
         `;

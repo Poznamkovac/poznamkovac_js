@@ -7,6 +7,7 @@ export class MwPojmovaMapa {
     private elementMapy: HTMLElement;
     private mapa: { vrcholy: Node[]; hrany: Edge[] };
     private pojmova_mapa: Network | null = null;
+    private jeMobil: boolean = window.innerWidth < 768;
 
     private static readonly farbySkupin = [
         [255, 102, 102], // červená
@@ -77,9 +78,6 @@ export class MwPojmovaMapa {
     }
 
     private vykreslitMapu(): void {
-        const sirkaZobrazenia = window.innerWidth;
-        const jeSirokeZobrazenie = sirkaZobrazenia > 768;
-
         const dataSiete = {
             nodes: new DataSet(this.mapa.vrcholy),
             edges: new DataSet(this.mapa.hrany),
@@ -87,33 +85,27 @@ export class MwPojmovaMapa {
 
         const nastavenia: Options = {
             interaction: {
-                hover: true,
+                hover: !this.jeMobil,
                 zoomView: false,
                 dragView: false,
                 dragNodes: false,
             },
             nodes: {
                 shape: "box",
-                widthConstraint: {
-                    maximum: 200,
-                },
+                widthConstraint: { maximum: 200 },
                 labelHighlightBold: true,
             },
             edges: {
                 width: 1.0,
-                arrows: {
-                    to: {
-                        enabled: true,
-                    },
-                },
+                arrows: { to: { enabled: true } },
             },
             layout: {
                 hierarchical: {
                     enabled: true,
-                    direction: jeSirokeZobrazenie ? "UD" : "LR",
+                    direction: this.jeMobil ? "LR" : "UD",
                     sortMethod: "directed",
-                    nodeSpacing: jeSirokeZobrazenie ? 200 : 40,
-                    levelSeparation: jeSirokeZobrazenie ? 80 : 140,
+                    nodeSpacing: this.jeMobil ? 40 : 200,
+                    levelSeparation: this.jeMobil ? 140 : 80,
                     shakeTowards: "roots",
                 },
             },
@@ -121,14 +113,11 @@ export class MwPojmovaMapa {
         };
 
         this.pojmova_mapa = new Network(this.elementMapy, dataSiete, nastavenia);
-
         this.nastavitUdalosti();
     }
 
     private nastavitUdalosti(): void {
-        if (!this.pojmova_mapa) return;
-
-        this.pojmova_mapa.on("click", (parametre) => {
+        this.pojmova_mapa?.on("click", (parametre) => {
             const titulokBunky = this.mapa.vrcholy.find((vrchol) => vrchol.id === parametre?.nodes?.[0])?.label;
             if (!titulokBunky) return;
 

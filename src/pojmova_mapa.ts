@@ -86,25 +86,16 @@ export class MwPojmovaMapa {
         };
 
         const nastavenia: Options = {
-            autoResize: true,
-            clickToUse: true,
             interaction: {
                 hover: true,
-                tooltipDelay: 0,
-                dragNodes: false,
-                dragView: false,
                 zoomView: false,
+                dragView: false,
+                dragNodes: false,
             },
             nodes: {
                 shape: "box",
                 widthConstraint: {
                     maximum: 200,
-                },
-                margin: {
-                    top: 10,
-                    right: 10,
-                    bottom: 10,
-                    left: 10,
                 },
                 labelHighlightBold: true,
             },
@@ -124,11 +115,6 @@ export class MwPojmovaMapa {
                     nodeSpacing: jeSirokeZobrazenie ? 200 : 40,
                     levelSeparation: jeSirokeZobrazenie ? 80 : 140,
                     shakeTowards: "roots",
-                },
-            },
-            physics: {
-                hierarchicalRepulsion: {
-                    nodeDistance: 150,
                 },
             },
             height: "400px",

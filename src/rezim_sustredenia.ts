@@ -130,7 +130,7 @@ export class MwZenRezim {
                 filter: opacity(0.65) !important;
             }
 
-            .zen-mode .zen-highlighted, .zen-mode .zen-highlighted *,
+            .zen-mode .zen-highlighted, .zen-mode .zen-highlighted *:not(.mwe-math-element *),
             #mapa, #mapa * {
                 filter: initial !important;
             }

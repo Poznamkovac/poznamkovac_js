@@ -1,3 +1,5 @@
+import { Walker } from './helpers/Walker';
+
 const EYE_OPEN = "https://upload.wikimedia.org/wikipedia/commons/d/d8/OOjs_UI_icon_eye-progressive.svg";
 const EYE_CLOSED = "https://upload.wikimedia.org/wikipedia/commons/3/30/OOjs_UI_icon_eyeClosed-progressive.svg";
 
@@ -9,19 +11,21 @@ export class MwZenRezim {
 
     private zen: boolean = false;
     private aktualnyElement: HTMLElement | null = null;
+    private vsetkyPlatneElementy: HTMLElement[] = [];
+    private aktualnyIndex: number = -1;
 
     constructor(obsahStranky: HTMLElement) {
         this.obsahStranky = obsahStranky;
         this.ikona = this.vytvoritIkonu();
         this.tlacidlo = this.vytvoritTlacidlo();
         this.ovladanie = this.vytvoritOvladanie();
-    }
 
-    public inicializovat(): void {
         this.pridatTlacidlo();
         this.pridatOvladanie();
         this.pridatEventListenery();
         this.aplikovatZenStyl();
+
+        this.nacitatVsetkyPlatneElementy();
     }
 
     public odstranit() {
@@ -182,60 +186,53 @@ export class MwZenRezim {
         return false;
     }
 
+    private nacitatVsetkyPlatneElementy(): void {
+        const elements = this.obsahStranky.querySelectorAll("p, ul, ol");
+        this.vsetkyPlatneElementy = Array.from(elements).filter((el) => this.jePlatnyElement(el)) as HTMLElement[];
+    }
+
     private najdiNajblizsiElement(): void {
-        const viewportMiddle = window.innerHeight / 2;
-        let closestElement: HTMLElement | null = null;
-        let minDistance = Infinity;
+        const viewportMiddleX = window.innerWidth / 2;
+        const viewportMiddleY = window.innerHeight / 2;
 
-        const rekurzivneHladanie = (element: Element): void => {
-            if (this.jePlatnyElement(element)) {
-                const rect = element.getBoundingClientRect();
-                const elementMiddle = rect.top + rect.height / 2;
-                const distance = Math.abs(elementMiddle - viewportMiddle);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestElement = element as HTMLElement;
-                }
-            }
+        let element = document.elementFromPoint(viewportMiddleX, viewportMiddleY);
 
-            for (const child of Array.from(element.children)) {
-                rekurzivneHladanie(child);
-            }
-        };
+        // Find the closest valid element
+        const distances: { element: HTMLElement; distance: number, index: number }[] = [];
 
-        rekurzivneHladanie(this.obsahStranky);
+        this.vsetkyPlatneElementy.forEach((el, index) => {
+            const rect = el.getBoundingClientRect();
+            const elMiddleX = rect.left + rect.width / 2;
+            const elMiddleY = rect.top + rect.height / 2;
+            const deltaX = viewportMiddleX - elMiddleX;
+            const deltaY = viewportMiddleY - elMiddleY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            distances.push({ element: el, distance, index });
+        });
 
-        if (closestElement && closestElement !== this.aktualnyElement) {
-            this.zvyraznitElement(closestElement);
+        distances.sort((a, b) => a.distance - b.distance);
+
+        if (distances.length > 0) {
+            const closest = distances[0];
+            this.aktualnyIndex = closest.index;
+            this.zvyraznitElement(closest.element);
         }
     }
 
-    private najdiElement(startElement: Element, smer: "next" | "previous"): HTMLElement | null {
-        const krok = (element: Element | null): Element | null => {
-            if (!element) return null;
-            return smer === "next" ? element.nextElementSibling : element.previousElementSibling;
-        };
+    private zvyraznitDalsi(): void {
+        if (this.vsetkyPlatneElementy.length === 0) return;
 
-        const hladajHlboko = (element: Element | null): HTMLElement | null => {
-            while (element) {
-                if (this.jePlatnyElement(element)) {
-                    return element as HTMLElement;
-                }
-                const result = hladajHlboko(smer === "next" ? element.firstElementChild : element.lastElementChild);
-                if (result) return result;
-                element = krok(element);
-            }
-            return null;
-        };
+        this.aktualnyIndex = (this.aktualnyIndex + 1) % this.vsetkyPlatneElementy.length;
+        const element = this.vsetkyPlatneElementy[this.aktualnyIndex];
+        this.zvyraznitElement(element);
+    }
 
-        let current: Element | null = startElement;
-        while (current && this.obsahStranky.contains(current)) {
-            const result = hladajHlboko(krok(current));
-            if (result) return result;
-            current = current.parentElement;
-        }
+    private zvyraznitPredosli(): void {
+        if (this.vsetkyPlatneElementy.length === 0) return;
 
-        return null;
+        this.aktualnyIndex = (this.aktualnyIndex - 1 + this.vsetkyPlatneElementy.length) % this.vsetkyPlatneElementy.length;
+        const element = this.vsetkyPlatneElementy[this.aktualnyIndex];
+        this.zvyraznitElement(element);
     }
 
     private zvyraznitElement(element: HTMLElement): void {
@@ -277,20 +274,6 @@ export class MwZenRezim {
             }
         });
     }
-
-    private zvyraznitDalsi(): void {
-        if (this.aktualnyElement) {
-            const dalsiElement = this.najdiElement(this.aktualnyElement, "next");
-            if (dalsiElement) this.zvyraznitElement(dalsiElement);
-        }
-    }
-
-    private zvyraznitPredosli(): void {
-        if (this.aktualnyElement) {
-            const predoslyElement = this.najdiElement(this.aktualnyElement, "previous");
-            if (predoslyElement) this.zvyraznitElement(predoslyElement);
-        }
-    }
 }
 
 export default function rezimSustredenia() {
@@ -300,7 +283,6 @@ export default function rezimSustredenia() {
 
     if (obsahStranky && veaction != "edit" && veaction != "editsource") {
         const zen = new MwZenRezim(obsahStranky);
-        zen.inicializovat();
 
         const veedit = globalThis.document.getElementById("ca-ve-edit");
         veedit?.addEventListener("click", () => {

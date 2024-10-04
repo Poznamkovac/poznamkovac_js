@@ -1,5 +1,5 @@
-import vykreslitMapu from "./src/pojmova_mapa";
-import rezimSustredenia from "./src/rezim_sustredenia";
+import vykreslitMapu from "./src/PojmovaMapa";
+import rezimSustredenia from "./src/RezimSustredenia";
 
 globalThis.addEventListener("load", () => {
     rezimSustredenia();

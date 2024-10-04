@@ -195,11 +195,7 @@ export class MwZenRezim {
         const viewportMiddleX = window.innerWidth / 2;
         const viewportMiddleY = window.innerHeight / 2;
 
-        let element = document.elementFromPoint(viewportMiddleX, viewportMiddleY);
-
-        // Find the closest valid element
-        const distances: { element: HTMLElement; distance: number, index: number }[] = [];
-
+        const distances: { element: HTMLElement; distance: number; index: number }[] = [];
         this.vsetkyPlatneElementy.forEach((el, index) => {
             const rect = el.getBoundingClientRect();
             const elMiddleX = rect.left + rect.width / 2;

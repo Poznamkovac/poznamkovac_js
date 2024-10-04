@@ -12,6 +12,7 @@
   "version": "1.0.0",
   "description": "Pojmová mapa pre https://poznamkovac.eu",
   "dependencies": {
+    "groq-sdk": "^0.7.0",
     "vis-network": "^9"
   },
   "devDependencies": {

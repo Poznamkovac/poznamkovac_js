@@ -1,7 +1,7 @@
 import type { Edge, Node, Options } from "vis-network";
 import { DataSet } from "vis-data/peer";
 import { Network } from "vis-network/peer";
-import { Walker } from './helpers/Walker';
+import { NadpisWalker } from "./helpers/Walker";
 
 export class MwPojmovaMapa {
     private obsahStranky: HTMLElement;
@@ -9,7 +9,7 @@ export class MwPojmovaMapa {
     private mapaNodes: DataSet<Node>;
     private mapaEdges: DataSet<Edge>;
     private pojmova_mapa: Network | null = null;
-    private jeMobil: boolean = window.innerWidth < 768 || ('ontouchstart' in window);
+    private jeMobil: boolean = window.innerWidth < 768 || "ontouchstart" in window;
 
     private static readonly farbySkupin = [
         [255, 102, 102], // červená
@@ -23,11 +23,11 @@ export class MwPojmovaMapa {
         [102, 178, 255], // modrá (ako obloha)
     ];
 
-    private walker: Walker;
+    private walker: NadpisWalker;
     private indexSkupiny: number = 0;
     private farbySkupin: { [key: number]: number } = {};
     private posledneNadpisy: number[] = [];
-    private nodeIdCounter: number = 1; // Start from 1 since root node is id 1
+    private nodeIdCounter: number = 1;
     private processing: boolean = false;
 
     constructor(obsahStranky: HTMLElement, elementMapy: HTMLDivElement) {
@@ -37,7 +37,7 @@ export class MwPojmovaMapa {
         this.mapaEdges = new DataSet();
 
         // Initialize the Walker to walk over headings
-        this.walker = new Walker(this.obsahStranky);
+        this.walker = new NadpisWalker(this.obsahStranky);
     }
 
     public vykreslit(): void {
@@ -54,9 +54,7 @@ export class MwPojmovaMapa {
         };
         this.mapaNodes.add(rootNode);
         this.farbySkupin[1] = this.indexSkupiny;
-
-        // Start processing the content incrementally
-        this.nodeIdCounter = 2; // Next node id
+        this.nodeIdCounter = 2;
 
         this.processing = true;
         this.procesovatDalsiChunk();
@@ -65,7 +63,7 @@ export class MwPojmovaMapa {
     private procesovatDalsiChunk(): void {
         if (!this.processing) return;
 
-        const chunkSize = 5; // Number of headings to process per chunk
+        const chunkSize = 5;
         let processed = 0;
 
         let currentHeading: HTMLHeadingElement | null;
@@ -88,9 +86,7 @@ export class MwPojmovaMapa {
             }
             const color = this.generovatFarbu(this.farbySkupin[idRodica]);
 
-            // Collect content under this heading
             const contentHtml = this.ziskatObsahPreNadpis(currentHeading);
-
             const node: Node = {
                 id: idVrchola,
                 label: nazov,
@@ -171,7 +167,7 @@ export class MwPojmovaMapa {
     }
 
     private nastavitUdalosti(): void {
-        const touchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const touchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
         if (touchDevice) {
             // On touch devices, first click shows the tooltip, double-click navigates

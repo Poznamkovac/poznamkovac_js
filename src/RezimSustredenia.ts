@@ -42,15 +42,12 @@ export class MwZenRezim {
     private vytvoritTlacidlo(): HTMLLIElement {
         const liTlacidlo = document.createElement("li");
         const tlacidlo = document.createElement("a");
-        const textTlacidla = document.createElement("span");
 
         liTlacidlo.id = "p-zen";
         liTlacidlo.className = "mw-list-item";
         tlacidlo.href = "#";
 
-        textTlacidla.textContent = tlacidlo.title = "Režim sústredenia";
-
-        tlacidlo.append(this.ikona, textTlacidla);
+        tlacidlo.append(this.ikona);
         liTlacidlo.appendChild(tlacidlo);
 
         tlacidlo.addEventListener("click", (e) => {

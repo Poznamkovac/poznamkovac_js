@@ -134,20 +134,35 @@ export class MwPojmovaMapa {
         };
 
         const nastavenia: Options = {
+            autoResize: true,
+            clickToUse: true,
             interaction: {
                 hover: true,
-                zoomView: !this.jeMobil,
-                dragView: !this.jeMobil,
+                tooltipDelay: 0,
                 dragNodes: false,
+                dragView: false,
+                zoomView: false,
             },
             nodes: {
                 shape: "box",
-                widthConstraint: { maximum: 200 },
+                widthConstraint: {
+                    maximum: 200,
+                },
+                margin: {
+                    top: 10,
+                    right: 10,
+                    bottom: 10,
+                    left: 10,
+                },
                 labelHighlightBold: true,
             },
             edges: {
                 width: 1.0,
-                arrows: { to: { enabled: true } },
+                arrows: {
+                    to: {
+                        enabled: true,
+                    },
+                },
             },
             layout: {
                 hierarchical: {

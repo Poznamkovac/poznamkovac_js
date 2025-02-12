@@ -13,9 +13,9 @@ export class MwPojmovaMapa {
 
     private static readonly farbySkupin = [
         [255, 102, 102], // červená
-        [102, 255, 102], // zelená
-        [102, 102, 255], // modrá
-        [255, 255, 102], // žltá
+        [49, 200, 49], // zelená
+        [80, 150, 250], // modrá
+        [255, 200, 100], // žltá
         [255, 102, 255], // fialová
         [102, 255, 255], // cyanová
         [255, 178, 102], // oranžová
@@ -27,8 +27,8 @@ export class MwPojmovaMapa {
     private indexSkupiny: number = 0;
     private farbySkupin: { [key: number]: number } = {};
     private posledneNadpisy: number[] = [];
-    private nodeIdCounter: number = 1;
-    private processing: boolean = false;
+    private pocitadloId: number = 1;
+    private generujeSa: boolean = false;
 
     constructor(obsahStranky: HTMLElement, elementMapy: HTMLDivElement) {
         this.obsahStranky = obsahStranky;
@@ -36,7 +36,6 @@ export class MwPojmovaMapa {
         this.mapaNodes = new DataSet();
         this.mapaEdges = new DataSet();
 
-        // Initialize the Walker to walk over headings
         this.walker = new NadpisWalker(this.obsahStranky);
     }
 
@@ -47,21 +46,20 @@ export class MwPojmovaMapa {
 
     private vytvoritDataMapy(): void {
         const korenovyNadpis = document.getElementById("firstHeading")?.innerText || "Koreň";
-        const rootNode: Node = {
+        const korenovyNod: Node = {
             id: 1,
             label: korenovyNadpis,
             color: this.generovatFarbu(this.indexSkupiny),
         };
-        this.mapaNodes.add(rootNode);
-        this.farbySkupin[1] = this.indexSkupiny;
-        this.nodeIdCounter = 2;
+        this.mapaNodes.add(korenovyNod);
+        this.pocitadloId = 2;
 
-        this.processing = true;
+        this.generujeSa = true;
         this.procesovatDalsiChunk();
     }
 
     private procesovatDalsiChunk(): void {
-        if (!this.processing) return;
+        if (!this.generujeSa) return;
 
         const chunkSize = 5;
         let processed = 0;
@@ -69,7 +67,7 @@ export class MwPojmovaMapa {
         let currentHeading: HTMLHeadingElement | null;
         while (processed < chunkSize && (currentHeading = this.walker.nasledovnyNadpis())) {
             const aktualnyLevel = this.ziskatLevelNadpisu(currentHeading);
-            const idVrchola = this.nodeIdCounter++;
+            const idVrchola = this.pocitadloId++;
             const nazov = currentHeading.querySelector(".mw-headline")?.textContent || currentHeading.textContent || "";
 
             let idRodica = 1;
@@ -103,10 +101,10 @@ export class MwPojmovaMapa {
         }
 
         if (currentHeading!) {
-            setTimeout(() => this.procesovatDalsiChunk(), 0);
-        } else {
-            this.processing = false;
+            return this.procesovatDalsiChunk();
         }
+        this.generujeSa = false;
+        return;
     }
 
     private ziskatObsahPreNadpis(nadpis: HTMLHeadingElement): string {
@@ -134,25 +132,26 @@ export class MwPojmovaMapa {
         };
 
         const nastavenia: Options = {
-            autoResize: true,
-            clickToUse: true,
             interaction: {
                 hover: true,
                 tooltipDelay: 0,
                 dragNodes: false,
-                dragView: false,
+                dragView: !this.jeMobil,
                 zoomView: false,
             },
             nodes: {
                 shape: "box",
                 widthConstraint: {
-                    maximum: 200,
+                    maximum: this.jeMobil ? 60 : 200,
+                },
+                font: {
+                    size: this.jeMobil ? 10 : 14,
                 },
                 margin: {
-                    top: 10,
-                    right: 10,
-                    bottom: 10,
-                    left: 10,
+                    top: this.jeMobil ? 5 : 10,
+                    right: this.jeMobil ? 5 : 10,
+                    bottom: this.jeMobil ? 5 : 10,
+                    left: this.jeMobil ? 5 : 10,
                 },
                 labelHighlightBold: true,
             },
@@ -160,17 +159,18 @@ export class MwPojmovaMapa {
                 width: 1.0,
                 arrows: {
                     to: {
-                        enabled: true,
+                        enabled: true
                     },
                 },
             },
+            physics: false,
             layout: {
                 hierarchical: {
                     enabled: true,
                     direction: this.jeMobil ? "LR" : "UD",
                     sortMethod: "directed",
-                    nodeSpacing: this.jeMobil ? 40 : 200,
-                    levelSeparation: this.jeMobil ? 140 : 80,
+                    nodeSpacing: this.jeMobil ? 50 : 170,
+                    levelSeparation: this.jeMobil ? 90 : 80,
                     shakeTowards: "roots",
                 },
             },
@@ -179,6 +179,7 @@ export class MwPojmovaMapa {
 
         this.pojmova_mapa = new Network(this.elementMapy, dataSiete, nastavenia);
         this.nastavitUdalosti();
+        this.pojmova_mapa.fit();
     }
 
     private nastavitUdalosti(): void {
@@ -194,7 +195,7 @@ export class MwPojmovaMapa {
                 lastTapTime = currentTime;
                 if (tapLength < 500 && tapLength > 0) {
                     // Double-tap detected
-                    this.navigateToNode(params);
+                    this.navigovatNa(params);
                 } else {
                     // Treat as hover
                     // Show tooltip (vis-network handles this automatically if 'title' is set)
@@ -204,12 +205,12 @@ export class MwPojmovaMapa {
         } else {
             // On non-touch devices
             this.pojmova_mapa?.on("click", (params) => {
-                this.navigateToNode(params);
+                this.navigovatNa(params);
             });
         }
     }
 
-    private navigateToNode(params: any): void {
+    private navigovatNa(params: any): void {
         const nodeId = params?.nodes?.[0];
         // @ts-ignore
         const node: Node = this.mapaNodes.get(nodeId);

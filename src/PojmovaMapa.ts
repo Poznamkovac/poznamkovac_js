@@ -10,6 +10,7 @@ export class MwPojmovaMapa {
     private mapaEdges: DataSet<Edge>;
     private pojmova_mapa: Network | null = null;
     private jeMobil: boolean = window.innerWidth < 768 || "ontouchstart" in window;
+    private mapaFocus: boolean = false;
 
     private static readonly farbySkupin = [
         [255, 102, 102], // červená
@@ -82,14 +83,14 @@ export class MwPojmovaMapa {
                 this.indexSkupiny++;
                 this.farbySkupin[idRodica] = this.indexSkupiny;
             }
-            const color = this.generovatFarbu(this.farbySkupin[idRodica]);
+            const farba = this.generovatFarbu(this.farbySkupin[idRodica]);
 
-            const contentHtml = this.ziskatObsahPreNadpis(currentHeading);
+            const obsahHTML = this.ziskatObsahPreNadpis(currentHeading);
             const node: Node = {
                 id: idVrchola,
                 label: nazov,
-                color: color,
-                title: contentHtml,
+                color: farba,
+                title: obsahHTML,
             };
             this.mapaNodes.add(node);
             this.mapaEdges.add({ from: idRodica, to: idVrchola });
@@ -159,19 +160,25 @@ export class MwPojmovaMapa {
                 width: 1.0,
                 arrows: {
                     to: {
-                        enabled: true
+                        enabled: true,
+                        scaleFactor: this.jeMobil ? 0.5 : 1.0,
                     },
                 },
             },
-            physics: false,
+            physics: {
+                enabled: false,
+                avoidOverlap: 1.0,
+            },
             layout: {
                 hierarchical: {
-                    enabled: true,
                     direction: this.jeMobil ? "LR" : "UD",
                     sortMethod: "directed",
                     nodeSpacing: this.jeMobil ? 50 : 170,
-                    levelSeparation: this.jeMobil ? 90 : 80,
+                    levelSeparation: this.jeMobil ? 80 : 70,
                     shakeTowards: "roots",
+                    blockShifting: true,
+                    edgeMinimization: true,
+                    parentCentralization: true,
                 },
             },
             height: "400px",
@@ -183,28 +190,27 @@ export class MwPojmovaMapa {
     }
 
     private nastavitUdalosti(): void {
-        const touchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+        const touchZariadenie = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
-        if (touchDevice) {
-            // On touch devices, first click shows the tooltip, double-click navigates
-            let lastTapTime = 0;
+        if (touchZariadenie) {
+            let poslednyTap = 0;
 
-            this.pojmova_mapa?.on("click", (params) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTapTime;
-                lastTapTime = currentTime;
-                if (tapLength < 500 && tapLength > 0) {
-                    // Double-tap detected
+            this.pojmova_mapa!.on("click", (params) => {
+                if (!this.mapaFocus) {
+                    this.mapaFocus = true;
+                    this.pojmova_mapa!.setOptions({ interaction: { dragView: true } });
+                    return;
+                }
+
+                const aktualnyCas = new Date().getTime();
+                const dlzkaTap = aktualnyCas - poslednyTap;
+                poslednyTap = aktualnyCas;
+                if (dlzkaTap < 500 && dlzkaTap > 0) {
                     this.navigovatNa(params);
-                } else {
-                    // Treat as hover
-                    // Show tooltip (vis-network handles this automatically if 'title' is set)
-                    // Do nothing extra
                 }
             });
         } else {
-            // On non-touch devices
-            this.pojmova_mapa?.on("click", (params) => {
+            this.pojmova_mapa!.on("click", (params) => {
                 this.navigovatNa(params);
             });
         }

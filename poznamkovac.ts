@@ -1,7 +1,7 @@
 import vykreslitMapu from "./src/PojmovaMapa";
-import rezimSustredenia from "./src/RezimSustredenia";
+import ocislujPojmy from "./src/PojmyOcislovanie";
 
 globalThis.addEventListener("load", () => {
-    rezimSustredenia();
+    ocislujPojmy();
     vykreslitMapu();
 });

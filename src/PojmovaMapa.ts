@@ -167,7 +167,6 @@ export class MwPojmovaMapa {
             },
             physics: {
                 enabled: false,
-                avoidOverlap: 1.0,
             },
             layout: {
                 hierarchical: {

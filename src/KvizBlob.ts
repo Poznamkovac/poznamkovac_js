@@ -1,5 +1,5 @@
 export default function nahradKvizObrazkyAkoBlob() {
-    const kvizSubory = globalThis.document.querySelectorAll('.quiz .mw-default-size[typeof="mw:File"]');
+    const kvizSubory = globalThis.document.querySelectorAll('.quiz .mw-default-size[typeof*="mw:File"]');
 
     kvizSubory.forEach(async (subor) => {
         const obrazok = subor.querySelector("img");

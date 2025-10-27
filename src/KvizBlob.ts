@@ -1,18 +1,24 @@
-export default function nahradKvizObrazkyAkoBlob() {
-    const kvizSubory = globalThis.document.querySelectorAll('.quiz *[typeof*="mw:File"]');
+async function nahraditObrazokBlob(subor: Element): Promise<void> {
+    const obrazok = subor.querySelector("img");
+    if (!obrazok) return;
 
-    kvizSubory.forEach(async (subor) => {
-        const obrazok = subor.querySelector("img");
-        if (!obrazok) return;
-
-        const obrazokUrl = obrazok.src;
-        const blob = await fetch(obrazokUrl).then((r) => r.blob());
+    try {
+        const response = await fetch(obrazok.src);
+        const blob = await response.blob();
         obrazok.src = URL.createObjectURL(blob);
+    } catch (error) {
+        console.warn("Nepodarilo sa načítať obrázok:", error);
+        return;
+    }
 
-        const a = subor.querySelector("a");
-        if (!a) return;
+    const odkaz = subor.querySelector("a");
+    if (odkaz) {
+        odkaz.href = "#";
+        odkaz.dataset.bsTitle = "Súbor:?";
+    }
+}
 
-        a.href = "#";
-        a.dataset.bsTitle = "Súbor:?";
-    });
+export default function nahradKvizObrazkyAkoBlob(): void {
+    const kvizSubory = document.querySelectorAll('.quiz *[typeof*="mw:File"]');
+    kvizSubory.forEach((subor) => nahraditObrazokBlob(subor));
 }

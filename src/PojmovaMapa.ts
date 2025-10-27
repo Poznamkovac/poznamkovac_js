@@ -3,16 +3,29 @@ import { DataSet } from "vis-data/peer";
 import { Network } from "vis-network/peer";
 import { NadpisWalker } from "./helpers/Walker";
 
-export class MwPojmovaMapa {
-    private obsahStranky: HTMLElement;
-    private elementMapy: HTMLElement;
-    private mapaNodes: DataSet<Node>;
-    private mapaEdges: DataSet<Edge>;
-    private pojmova_mapa: Network | null = null;
-    private jeMobil: boolean = window.innerWidth < 768 || "ontouchstart" in window;
-    private mapaFocus: boolean = false;
+type RGB = [number, number, number];
 
-    private static readonly farbySkupin = [
+const MOBILE_BREAKPOINT = 768;
+const CHUNK_SIZE = 5;
+const DOUBLE_TAP_THRESHOLD = 500;
+
+export class MwPojmovaMapa {
+    private readonly obsahStranky: HTMLElement;
+    private readonly elementMapy: HTMLElement;
+    private readonly mapaNodes: DataSet<Node>;
+    private readonly mapaEdges: DataSet<Edge>;
+    private readonly jeMobil: boolean;
+    private readonly walker: NadpisWalker;
+
+    private pojmova_mapa: Network | null = null;
+    private mapaFocus: boolean = false;
+    private indexSkupiny: number = 0;
+    private farbySkupin: Map<number, number> = new Map();
+    private posledneNadpisy: number[] = [];
+    private pocitadloId: number = 1;
+    private generujeSa: boolean = false;
+
+    private static readonly farbySkupin: RGB[] = [
         [255, 102, 102], // červená
         [49, 200, 49], // zelená
         [80, 150, 250], // modrá
@@ -24,19 +37,12 @@ export class MwPojmovaMapa {
         [102, 178, 255], // modrá (ako obloha)
     ];
 
-    private walker: NadpisWalker;
-    private indexSkupiny: number = 0;
-    private farbySkupin: { [key: number]: number } = {};
-    private posledneNadpisy: number[] = [];
-    private pocitadloId: number = 1;
-    private generujeSa: boolean = false;
-
     constructor(obsahStranky: HTMLElement, elementMapy: HTMLDivElement) {
         this.obsahStranky = obsahStranky;
         this.elementMapy = elementMapy;
         this.mapaNodes = new DataSet();
         this.mapaEdges = new DataSet();
-
+        this.jeMobil = window.innerWidth < MOBILE_BREAKPOINT || "ontouchstart" in window;
         this.walker = new NadpisWalker(this.obsahStranky);
     }
 
@@ -62,50 +68,56 @@ export class MwPojmovaMapa {
     private procesovatDalsiChunk(): void {
         if (!this.generujeSa) return;
 
-        const chunkSize = 5;
         let processed = 0;
-
         let currentHeading: HTMLHeadingElement | null;
-        while (processed < chunkSize && (currentHeading = this.walker.nasledovnyNadpis())) {
-            const aktualnyLevel = this.ziskatLevelNadpisu(currentHeading);
-            const idVrchola = this.pocitadloId++;
-            const nazov = currentHeading.querySelector(".mw-headline")?.textContent || currentHeading.textContent || "";
 
-            let idRodica = 1;
-            for (let lvl = aktualnyLevel - 1; lvl >= 0; lvl--) {
-                if (this.posledneNadpisy[lvl] !== undefined) {
-                    idRodica = this.posledneNadpisy[lvl];
-                    break;
-                }
-            }
-
-            if (this.farbySkupin[idRodica] === undefined) {
-                this.indexSkupiny++;
-                this.farbySkupin[idRodica] = this.indexSkupiny;
-            }
-            const farba = this.generovatFarbu(this.farbySkupin[idRodica]);
-
-            const obsahHTML = this.ziskatObsahPreNadpis(currentHeading);
-            const node: Node = {
-                id: idVrchola,
-                label: nazov,
-                color: farba,
-                title: obsahHTML,
-            };
-            this.mapaNodes.add(node);
-            this.mapaEdges.add({ from: idRodica, to: idVrchola });
-
-            this.posledneNadpisy[aktualnyLevel] = idVrchola;
-            this.posledneNadpisy = this.posledneNadpisy.slice(0, aktualnyLevel + 1);
-
+        while (processed < CHUNK_SIZE && (currentHeading = this.walker.nasledovnyNadpis())) {
+            this.spracovatNadpis(currentHeading);
             processed++;
         }
 
-        if (currentHeading!) {
-            return this.procesovatDalsiChunk();
+        if (currentHeading) {
+            this.procesovatDalsiChunk();
+        } else {
+            this.generujeSa = false;
         }
-        this.generujeSa = false;
-        return;
+    }
+
+    private spracovatNadpis(nadpis: HTMLHeadingElement): void {
+        const aktualnyLevel = this.ziskatLevelNadpisu(nadpis);
+        const idVrchola = this.pocitadloId++;
+        const nazov = nadpis.querySelector(".mw-headline")?.textContent || nadpis.textContent || "";
+        const idRodica = this.najstIdRodica(aktualnyLevel);
+        const farba = this.ziskatFarbuPreRodica(idRodica);
+        const obsahHTML = this.ziskatObsahPreNadpis(nadpis);
+
+        this.mapaNodes.add({
+            id: idVrchola,
+            label: nazov,
+            color: farba,
+            title: obsahHTML,
+        });
+        this.mapaEdges.add({ from: idRodica, to: idVrchola });
+
+        this.posledneNadpisy[aktualnyLevel] = idVrchola;
+        this.posledneNadpisy = this.posledneNadpisy.slice(0, aktualnyLevel + 1);
+    }
+
+    private najstIdRodica(aktualnyLevel: number): number {
+        for (let lvl = aktualnyLevel - 1; lvl >= 0; lvl--) {
+            if (this.posledneNadpisy[lvl] !== undefined) {
+                return this.posledneNadpisy[lvl];
+            }
+        }
+        return 1;
+    }
+
+    private ziskatFarbuPreRodica(idRodica: number): string {
+        if (!this.farbySkupin.has(idRodica)) {
+            this.indexSkupiny++;
+            this.farbySkupin.set(idRodica, this.indexSkupiny);
+        }
+        return this.generovatFarbu(this.farbySkupin.get(idRodica)!);
     }
 
     private ziskatObsahPreNadpis(nadpis: HTMLHeadingElement): string {
@@ -132,7 +144,15 @@ export class MwPojmovaMapa {
             edges: this.mapaEdges,
         };
 
-        const nastavenia: Options = {
+        this.pojmova_mapa = new Network(this.elementMapy, dataSiete, this.vytvorNastavenia());
+        this.nastavitUdalosti();
+        this.pojmova_mapa.fit();
+    }
+
+    private vytvorNastavenia(): Options {
+        const margin = this.jeMobil ? 5 : 10;
+
+        return {
             interaction: {
                 hover: true,
                 tooltipDelay: 0,
@@ -148,12 +168,7 @@ export class MwPojmovaMapa {
                 font: {
                     size: this.jeMobil ? 10 : 14,
                 },
-                margin: {
-                    top: this.jeMobil ? 5 : 10,
-                    right: this.jeMobil ? 5 : 10,
-                    bottom: this.jeMobil ? 5 : 10,
-                    left: this.jeMobil ? 5 : 10,
-                },
+                margin: { top: margin, right: margin, bottom: margin, left: margin },
                 labelHighlightBold: true,
             },
             edges: {
@@ -182,45 +197,44 @@ export class MwPojmovaMapa {
             },
             height: "400px",
         };
-
-        this.pojmova_mapa = new Network(this.elementMapy, dataSiete, nastavenia);
-        this.nastavitUdalosti();
-        this.pojmova_mapa.fit();
     }
 
     private nastavitUdalosti(): void {
         const touchZariadenie = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
         if (touchZariadenie) {
-            let poslednyTap = 0;
-
-            this.pojmova_mapa!.on("click", (params) => {
-                if (!this.mapaFocus) {
-                    this.mapaFocus = true;
-                    this.pojmova_mapa!.setOptions({ interaction: { dragView: true } });
-                    return;
-                }
-
-                const aktualnyCas = new Date().getTime();
-                const dlzkaTap = aktualnyCas - poslednyTap;
-                poslednyTap = aktualnyCas;
-                if (dlzkaTap < 500 && dlzkaTap > 0) {
-                    this.navigovatNa(params);
-                }
-            });
+            this.nastavitDotykovyHandler();
         } else {
-            this.pojmova_mapa!.on("click", (params) => {
-                this.navigovatNa(params);
-            });
+            this.pojmova_mapa!.on("click", (params) => this.navigovatNa(params));
         }
+    }
+
+    private nastavitDotykovyHandler(): void {
+        let poslednyTap = 0;
+
+        this.pojmova_mapa!.on("click", (params) => {
+            if (!this.mapaFocus) {
+                this.mapaFocus = true;
+                this.pojmova_mapa!.setOptions({ interaction: { dragView: true } });
+                return;
+            }
+
+            const aktualnyCas = Date.now();
+            const dlzkaTap = aktualnyCas - poslednyTap;
+            poslednyTap = aktualnyCas;
+
+            if (dlzkaTap < DOUBLE_TAP_THRESHOLD && dlzkaTap > 0) {
+                this.navigovatNa(params);
+            }
+        });
     }
 
     private navigovatNa(params: any): void {
         const nodeId = params?.nodes?.[0];
-        // @ts-ignore
-        const node: Node = this.mapaNodes.get(nodeId);
+        if (!nodeId) return;
 
-        if (node && node.label) {
+        const node = this.mapaNodes.get(nodeId) as Node | null;
+        if (node?.label) {
             const anchor = node.label.replaceAll(" ", "_");
             window.location.hash = `#${anchor}`;
         }

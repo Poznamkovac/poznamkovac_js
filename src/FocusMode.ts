@@ -2,13 +2,23 @@ const FOCUS_MODE_CLASS = "focus-mode-active";
 const FOCUS_BLOCK_CLASS = "focus-block";
 const FOCUS_CURRENT_CLASS = "focus-block--current";
 const BLOCK_SELECTORS =
-  "p, ul, ol, figure, blockquote, div:not(.mw-parser-output):not([id])";
+  "p, ul, ol, figure, blockquote, table, table>caption, div:not(.mw-parser-output):not([id])";
+
+// highlight these as one group, do not go further into them:
+const ATOMIC_SELECTORS = [
+  "[style*='display: flex']",
+  "[style*='display:flex']",
+  ".mw-references-wrap",
+  "table",
+  ".poz-box",
+];
 
 class FocusMode {
   private readonly parserOutput: HTMLElement;
   private readonly bloky: HTMLElement[] = [];
   private aktivny: boolean = false;
   private aktualnyIndex: number = 0;
+  private klavesovaNagivacia: boolean = false;
 
   constructor(parserOutput: HTMLElement) {
     this.parserOutput = parserOutput;
@@ -16,6 +26,7 @@ class FocusMode {
   }
 
   private inicializovatBloky(): void {
+    const atomicSelector = ATOMIC_SELECTORS.join(", ");
     const vsetkyElementy = Array.from(
       this.parserOutput.querySelectorAll<HTMLElement>(
         `:scope > section > ${BLOCK_SELECTORS}`,
@@ -27,6 +38,18 @@ class FocusMode {
       const element = vsetkyElementy[i];
 
       if (this.jePrazdnyElement(element)) {
+        i++;
+        continue;
+      }
+
+      if (this.jeVnútriBloku(element)) {
+        i++;
+        continue;
+      }
+
+      if (element.matches(atomicSelector)) {
+        element.classList.add(FOCUS_BLOCK_CLASS);
+        this.bloky.push(element);
         i++;
         continue;
       }
@@ -45,6 +68,12 @@ class FocusMode {
       this.bloky.push(element);
       i++;
     }
+  }
+
+  private jeVnútriBloku(element: HTMLElement): boolean {
+    return this.bloky.some(
+      (blok) => blok.contains(element) && blok !== element,
+    );
   }
 
   private jePrazdnyElement(element: HTMLElement): boolean {
@@ -128,24 +157,22 @@ class FocusMode {
     const style = document.createElement("style");
     style.id = "focus-mode-styles";
     style.textContent = `
-            body.${FOCUS_MODE_CLASS} .mw-parser-output .${FOCUS_BLOCK_CLASS} {
-                opacity: 0.35;
-                filter: grayscale(100%);
-                transition: opacity 0.2s ease, filter 0.2s ease;
-            }
-
-            body.${FOCUS_MODE_CLASS} .mw-parser-output .${FOCUS_BLOCK_CLASS}.${FOCUS_CURRENT_CLASS} {
-                opacity: 1;
-                filter: none;
-            }
-
-            body.${FOCUS_MODE_CLASS} .mw-parser-output h2,
-            body.${FOCUS_MODE_CLASS} .mw-parser-output h3,
-            body.${FOCUS_MODE_CLASS} .mw-parser-output h4 {
-                opacity: 0.5;
-                filter: grayscale(100%);
-            }
-        `;
+      body.${FOCUS_MODE_CLASS} .mw-parser-output .${FOCUS_BLOCK_CLASS} {
+        opacity: 0.35;
+        filter: grayscale(100%);
+        transition: opacity 0.2s ease, filter 0.2s ease;
+      }
+      body.${FOCUS_MODE_CLASS} .mw-parser-output .${FOCUS_BLOCK_CLASS}.${FOCUS_CURRENT_CLASS} {
+        opacity: 1;
+        filter: none;
+      }
+      body.${FOCUS_MODE_CLASS} .mw-parser-output h2,
+      body.${FOCUS_MODE_CLASS} .mw-parser-output h3,
+      body.${FOCUS_MODE_CLASS} .mw-parser-output h4 {
+        opacity: 0.5;
+        filter: grayscale(100%);
+      }
+    `;
     document.head.appendChild(style);
   }
 
@@ -155,6 +182,7 @@ class FocusMode {
   }
 
   private handleScroll = (): void => {
+    if (this.klavesovaNagivacia) return;
     this.aktualizovatFocusPodlaScroll();
   };
 
@@ -218,10 +246,14 @@ class FocusMode {
   }
 
   private scrollNaAktualny(): void {
+    this.klavesovaNagivacia = true;
     this.bloky[this.aktualnyIndex]?.scrollIntoView({
       behavior: "smooth",
       block: "center",
     });
+    setTimeout(() => {
+      this.klavesovaNagivacia = false;
+    }, 500);
   }
 
   public jeAktivny(): boolean {
@@ -229,46 +261,79 @@ class FocusMode {
   }
 }
 
-function vytvorTlacidloFocus(focusMode: FocusMode): HTMLLIElement {
-  const li = document.createElement("li");
-  li.id = "ca-focus";
-  li.className = "mw-list-item";
+function pridatTlacidloStyly(): void {
+  if (document.getElementById("focus-button-styles")) return;
 
-  const a = document.createElement("a");
-  a.href = "#";
-  a.title = "Focus mode";
-  a.addEventListener("click", (e) => {
-    e.preventDefault();
+  const style = document.createElement("style");
+  style.id = "focus-button-styles";
+  style.textContent = `
+    #ca-focus {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: var(--color-surface-2, #f8f9fa);
+      color: var(--color-base, #202122);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    #ca-focus:hover {
+      background: var(--color-surface-3, #eaecf0);
+      transform: scale(1.05);
+    }
+
+    #ca-focus.focus-button--active {
+      background: var(--color-primary, #36c);
+      color: #fff;
+    }
+
+    #ca-focus.focus-button--active:hover {
+      background: var(--color-primary--hover, #447ff5);
+    }
+
+    @media (max-width: 719px) {
+      #ca-focus {
+        bottom: 60px;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function vytvorTlacidloFocus(focusMode: FocusMode): HTMLButtonElement {
+  pridatTlacidloStyly();
+
+  const button = document.createElement("button");
+  button.id = "ca-focus";
+  button.title = "Focus mode (Escape to exit)";
+  button.type = "button";
+  button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path fill="currentColor" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16m0 14a6 6 0 1 1 0-12 6 6 0 0 1 0 12m0-10a4 4 0 1 0 0 8 4 4 0 0 0 0-8m0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4"/></svg>`;
+
+  button.addEventListener("click", () => {
     focusMode.prepnut();
-    li.classList.toggle("selected", focusMode.jeAktivny());
+    button.classList.toggle("focus-button--active", focusMode.jeAktivny());
   });
 
-  const iconSpan = document.createElement("span");
-  iconSpan.className =
-    "citizen-ui-icon mw-ui-icon-eye mw-ui-icon-wikimedia-eye";
-
-  const textSpan = document.createElement("span");
-  textSpan.textContent = "Focus";
-
-  a.appendChild(iconSpan);
-  a.appendChild(document.createTextNode(" "));
-  a.appendChild(textSpan);
-  li.appendChild(a);
-
-  return li;
+  return button;
 }
 
 export default function inicializovatFocusMode(): void {
   const parserOutput = document.querySelector<HTMLElement>(".mw-parser-output");
-  const viewsMenu = document.querySelector(
-    "#p-views .citizen-menu__content-list, #p-views ul",
-  );
 
-  if (!parserOutput || !viewsMenu) {
+  if (!parserOutput) {
     return;
   }
 
   const focusMode = new FocusMode(parserOutput);
   const tlacidlo = vytvorTlacidloFocus(focusMode);
-  viewsMenu.appendChild(tlacidlo);
+  document.body.appendChild(tlacidlo);
 }

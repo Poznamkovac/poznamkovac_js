@@ -1,7 +1,9 @@
+const TRIEDA_ZVYRAZNENIA = "zvyraznenie";
+
 function pridatStyly(): void {
     const style = document.createElement("style");
-    style.innerHTML = `
-        .zvyraznenie {
+    style.textContent = `
+        .${TRIEDA_ZVYRAZNENIA} {
             background-color: #ffff9910;
             padding: 5px;
             border-left: 5px solid #ffcc0026;
@@ -11,17 +13,14 @@ function pridatStyly(): void {
 }
 
 function zvyraznitSekciuPodlaHash(): void {
-    document.querySelectorAll(".zvyraznenie").forEach((element) => {
-        element.classList.remove("zvyraznenie");
+    document.querySelectorAll(`.${TRIEDA_ZVYRAZNENIA}`).forEach((el) => {
+        el.classList.remove(TRIEDA_ZVYRAZNENIA);
     });
 
-    const hash = decodeURIComponent(window.location.hash);
-    if (hash) {
-        const cielovyElement = document.getElementById(hash.substring(1))?.parentElement;
-        if (cielovyElement) {
-            cielovyElement.classList.add("zvyraznenie");
-        }
-    }
+    const hash = decodeURIComponent(window.location.hash).substring(1);
+    if (!hash) return;
+
+    document.getElementById(hash)?.parentElement?.classList.add(TRIEDA_ZVYRAZNENIA);
 }
 
 export default function zvyraznitNadpisy(): void {

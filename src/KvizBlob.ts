@@ -4,6 +4,7 @@ async function nahraditObrazokBlob(subor: Element): Promise<void> {
 
     try {
         const response = await fetch(obrazok.src);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const blob = await response.blob();
         obrazok.src = URL.createObjectURL(blob);
     } catch (error) {
@@ -19,6 +20,6 @@ async function nahraditObrazokBlob(subor: Element): Promise<void> {
 }
 
 export default function nahradKvizObrazkyAkoBlob(): void {
-    const kvizSubory = document.querySelectorAll('.quiz *[typeof*="mw:File"]');
-    kvizSubory.forEach((subor) => nahraditObrazokBlob(subor));
+    const kvizSubory = document.querySelectorAll<Element>('.quiz *[typeof*="mw:File"]');
+    Promise.allSettled(Array.from(kvizSubory, nahraditObrazokBlob));
 }

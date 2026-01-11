@@ -20,7 +20,7 @@ export class MwPojmovaMapa {
     private pojmova_mapa: Network | null = null;
     private mapaFocus: boolean = false;
     private indexSkupiny: number = 0;
-    private farbySkupin: Map<number, number> = new Map();
+    private rodiciaFarby: Map<number, number> = new Map();
     private posledneNadpisy: number[] = [];
     private pocitadloId: number = 1;
     private generujeSa: boolean = false;
@@ -68,19 +68,16 @@ export class MwPojmovaMapa {
     private procesovatDalsiChunk(): void {
         if (!this.generujeSa) return;
 
-        let processed = 0;
-        let currentHeading: HTMLHeadingElement | null;
-
-        while (processed < CHUNK_SIZE && (currentHeading = this.walker.nasledovnyNadpis())) {
+        for (let i = 0; i < CHUNK_SIZE; i++) {
+            const currentHeading = this.walker.nasledovnyNadpis();
+            if (!currentHeading) {
+                this.generujeSa = false;
+                return;
+            }
             this.spracovatNadpis(currentHeading);
-            processed++;
         }
 
-        if (currentHeading) {
-            this.procesovatDalsiChunk();
-        } else {
-            this.generujeSa = false;
-        }
+        requestAnimationFrame(() => this.procesovatDalsiChunk());
     }
 
     private spracovatNadpis(nadpis: HTMLHeadingElement): void {
@@ -113,11 +110,11 @@ export class MwPojmovaMapa {
     }
 
     private ziskatFarbuPreRodica(idRodica: number): string {
-        if (!this.farbySkupin.has(idRodica)) {
+        if (!this.rodiciaFarby.has(idRodica)) {
             this.indexSkupiny++;
-            this.farbySkupin.set(idRodica, this.indexSkupiny);
+            this.rodiciaFarby.set(idRodica, this.indexSkupiny);
         }
-        return this.generovatFarbu(this.farbySkupin.get(idRodica)!);
+        return this.generovatFarbu(this.rodiciaFarby.get(idRodica)!);
     }
 
     private ziskatObsahPreNadpis(nadpis: HTMLHeadingElement): string {
@@ -229,14 +226,13 @@ export class MwPojmovaMapa {
         });
     }
 
-    private navigovatNa(params: any): void {
-        const nodeId = params?.nodes?.[0];
-        if (!nodeId) return;
+    private navigovatNa(params: { nodes?: (string | number)[] }): void {
+        const nodeId = params.nodes?.[0];
+        if (nodeId === undefined) return;
 
-        const node = this.mapaNodes.get(nodeId) as Node | null;
+        const node = this.mapaNodes.get(nodeId);
         if (node?.label) {
-            const anchor = node.label.replaceAll(" ", "_");
-            window.location.hash = `#${anchor}`;
+            window.location.hash = `#${node.label.replaceAll(" ", "_")}`;
         }
     }
 

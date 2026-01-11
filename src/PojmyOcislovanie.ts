@@ -15,20 +15,16 @@ function zformatovatId(nadradeneCislo: string | undefined, aktualnyPojem: number
 }
 
 export default function ocislujPojmy(): void {
-    const sidebarPojmyConfig = document.getElementById("sidebar-pojmy-config");
-    const nadradeneCislo = sidebarPojmyConfig?.dataset.cislo;
-
+    const nadradeneCislo = document.getElementById("sidebar-pojmy-config")?.dataset.cislo;
     const pojmy = document.querySelectorAll(".sidebar-pojem");
-    let aktualnyPojem = 1;
 
-    pojmy.forEach((pojem) => {
+    pojmy.forEach((pojem, index) => {
         const pojemCislovanie = pojem.querySelector(".sidebar-pojem-cislovanie");
-        if (pojemCislovanie) {
-            const cislo = zformatovatCislo(nadradeneCislo, aktualnyPojem);
-            const id = zformatovatId(nadradeneCislo, aktualnyPojem);
-            const odkaz = vytvorOdkazNaCislo(cislo, id);
-            pojemCislovanie.appendChild(odkaz);
-        }
-        aktualnyPojem++;
+        if (!pojemCislovanie) return;
+
+        const poradoveCislo = index + 1;
+        const cislo = zformatovatCislo(nadradeneCislo, poradoveCislo);
+        const id = zformatovatId(nadradeneCislo, poradoveCislo);
+        pojemCislovanie.appendChild(vytvorOdkazNaCislo(cislo, id));
     });
 }

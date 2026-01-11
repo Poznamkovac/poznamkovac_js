@@ -7,15 +7,14 @@
     "build": "bun build poznamkovac.ts --minify --outdir=dist --target=browser"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.5.4"
   },
   "version": "1.0.0",
-  "description": "Pojmová mapa pre https://poznamkovac.eu",
+  "description": "Skripty pre https://poznamkovac.eu",
   "dependencies": {
-    "groq-sdk": "^0.7.0",
-    "vis-network": "^9"
+    "vis-network": "^10.0.2"
   },
   "devDependencies": {
-    "bun-types": "^1.1.26"
+    "bun-types": "^1.3.5"
   }
 }
